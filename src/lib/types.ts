@@ -84,6 +84,8 @@ export interface Ink extends BaseRecord {
   strokes: Stroke[];
   /** Memo pad height in page units. */
   height?: number;
+  /** Memo pad width in page units (memos made before it was stored are PAGE_WIDTH wide). */
+  width?: number;
 }
 
 /** What happened when you answered a question. id = question id. */
@@ -127,3 +129,6 @@ export const COLLECTION_NAMES: CollectionName[] = ['exams', 'sets', 'questions',
 
 /** Width of a question page and memo pad in page units. Handwriting is stored in these units. */
 export const PAGE_WIDTH = 440;
+
+/** Width of a new memo pad in page units: wide, so it fills an iPad screen. */
+export const MEMO_WIDTH = 900;

@@ -120,7 +120,7 @@
     <div class="toolbar-wrap"><InkToolbar /></div>
   {/if}
 
-  <div class="page-body study" bind:this={root}>
+  <div class="page-body study" class:wide={ui.notes} bind:this={root}>
     {#if !question}
       <div class="card empty">This question was deleted.</div>
     {:else}
@@ -206,6 +206,24 @@
     flex-direction: column;
     gap: 14px;
     padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+
+  /* Notes mode uses the whole screen width: room to write beside the question and a wide memo pad. */
+  .study.wide {
+    max-width: none;
+  }
+
+  .study.wide > :global(*:not(.frame):not(.notes)) {
+    width: 100%;
+    max-width: calc(var(--page-max) - 32px);
+    margin-inline: auto;
+    box-sizing: border-box;
+  }
+
+  .study.wide .notes > :global(*:not(.field:has(.memo))) {
+    width: 100%;
+    max-width: calc(var(--page-max) - 32px);
+    margin-inline: auto;
   }
 
   .toolbar-wrap {

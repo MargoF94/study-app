@@ -225,7 +225,7 @@ class Store {
     await this.put('marks', [existing ? { ...existing, ranges } : { id: q.id, examId: q.examId, createdAt: '', updatedAt: '', ranges }]);
   }
 
-  async saveInk(q: Question, area: Ink['area'], patch: Pick<Ink, 'strokes'> & Partial<Pick<Ink, 'height'>>): Promise<void> {
+  async saveInk(q: Question, area: Ink['area'], patch: Pick<Ink, 'strokes'> & Partial<Pick<Ink, 'height' | 'width'>>): Promise<void> {
     const id = `${q.id}.${area}`;
     const existing = this.ink.get(id);
     await this.put('ink', [existing ? { ...existing, ...patch } : { id, examId: q.examId, questionId: q.id, area, createdAt: '', updatedAt: '', ...patch }]);

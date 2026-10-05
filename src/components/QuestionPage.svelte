@@ -35,6 +35,8 @@
   let innerHeight = $state(0);
   const scale = $derived(width ? Math.min(width / PAGE_WIDTH, MAX_SCALE) : 1);
   const multi = $derived(question.correct.length > 1);
+  /** Free space beside the page, in page units: writable too. */
+  const margin = $derived(notes && width ? Math.max(0, (width - PAGE_WIDTH * scale) / 2 / scale) : 0);
 
   function optState(i: number): 'right' | 'wrong' | 'missed' | 'chosen' | '' {
     const isChosen = chosen.includes(i);
@@ -95,7 +97,7 @@
       {/each}
     </div>
     {#if notes}
-      <InkLayer {strokes} active={writing} onchange={onink} label="Handwriting on the question" />
+      <InkLayer {strokes} active={writing} onchange={onink} label="Handwriting on the question" left={margin} right={margin} />
     {/if}
   </div>
 </div>

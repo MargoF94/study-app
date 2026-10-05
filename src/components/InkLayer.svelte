@@ -1,6 +1,8 @@
 <script lang="ts">
-  // Handwriting over a page. Sits inside a box laid out in page units (PAGE_WIDTH
+  // Handwriting over a page. Sits inside a box laid out in page units (`width`
   // wide, scaled to the screen), so strokes stay in place on every device.
+  // `left`/`right` extend the writing area past the box's sides (the margins
+  // beside the question); strokes there are stored at negative x or past the width.
   // With "Pencil only", fingers and palms scroll and never draw.
   import { addPoint, newStroke, strokePath, touches } from '../lib/ink';
   import { PAGE_WIDTH, type Stroke } from '../lib/types';
@@ -11,7 +13,18 @@
     active,
     onchange,
     label,
-  }: { strokes: Stroke[]; active: boolean; onchange: (next: Stroke[]) => void; label: string } = $props();
+    width = PAGE_WIDTH,
+    left = 0,
+    right = 0,
+  }: {
+    strokes: Stroke[];
+    active: boolean;
+    onchange: (next: Stroke[]) => void;
+    label: string;
+    width?: number;
+    left?: number;
+    right?: number;
+  } = $props();
 
   let svg: SVGSVGElement | undefined = $state();
   let current = $state<Stroke | null>(null);
@@ -26,9 +39,9 @@
 
   function point(e: PointerEvent): [number, number, number] {
     const rect = svg!.getBoundingClientRect();
-    const scale = rect.width / PAGE_WIDTH || 1;
+    const scale = rect.width / (width + left + right) || 1;
     const pressure = e.pointerType === 'pen' ? e.pressure : 0.5;
-    return [(e.clientX - rect.left) / scale, (e.clientY - rect.top) / scale, pressure];
+    return [(e.clientX - rect.left) / scale - left, (e.clientY - rect.top) / scale, pressure];
   }
 
   function allowed(e: PointerEvent) {
@@ -119,13 +132,17 @@
   onpointermove={move}
   onpointerup={up}
   onpointercancel={up}
+  style:left="{-left}px"
+  style:width="calc(100% + {left + right}px)"
 >
-  {#each paths as p, i (i)}
-    <path d={p.d} class="s {p.s.tool} c-{p.s.color}" />
-  {/each}
-  {#if current && livePath}
-    <path d={livePath} class="s {current.tool} c-{current.color}" />
-  {/if}
+  <g transform="translate({left} 0)">
+    {#each paths as p, i (i)}
+      <path d={p.d} class="s {p.s.tool} c-{p.s.color}" />
+    {/each}
+    {#if current && livePath}
+      <path d={livePath} class="s {current.tool} c-{current.color}" />
+    {/if}
+  </g>
 </svg>
 
 <style>
