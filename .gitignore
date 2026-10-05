@@ -1,0 +1,14 @@
+node_modules
+dist
+dev-dist
+*.local
+.DS_Store
+tests/_local*
+
+# Never commit question files: they belong in the private study-data repo.
+# Synthetic test files go in tests/fixtures/ and are allowed.
+*.csv
+*.CSV
+*.xlsx
+*.xls
+!tests/fixtures/**
