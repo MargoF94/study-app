@@ -26,7 +26,7 @@ export async function changedFiles(local: Map<string, string>, remote: Map<strin
 
 export function commitMessage(path: string): string {
   if (path === MAIN_PATH) return 'Update exams and settings';
-  const m = path.match(/^exams\/[^/]+\/(questions|notes|progress)\.json$/);
+  const m = path.match(/^exams\/[^/]+\/(questions|notes|progress|links)\.json$/);
   if (m) return `Update ${m[1]}`;
   return 'Update handwriting';
 }

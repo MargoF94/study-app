@@ -9,6 +9,8 @@
   import ExamForm from './pages/ExamForm.svelte';
   import Exams from './pages/Exams.svelte';
   import Import from './pages/Import.svelte';
+  import LinkForm from './pages/LinkForm.svelte';
+  import Links from './pages/Links.svelte';
   import QuestionForm from './pages/QuestionForm.svelte';
   import QuestionList from './pages/QuestionList.svelte';
   import Settings from './pages/Settings.svelte';
@@ -62,6 +64,12 @@
   {#key seg[1]}<ExamForm examId={seg[1]} />{/key}
 {:else if seg[0] === 'exam' && seg[1] && seg[2] === 'questions'}
   {#key seg[1]}<QuestionList examId={seg[1]} />{/key}
+{:else if seg[0] === 'exam' && seg[1] && seg[2] === 'links'}
+  {#key seg[1]}<Links examId={seg[1]} />{/key}
+{:else if seg[0] === 'link' && seg[1] === 'new'}
+  {#key router.route.query.toString()}<LinkForm />{/key}
+{:else if seg[0] === 'link' && seg[1] && seg[2] === 'edit'}
+  {#key seg[1]}<LinkForm id={seg[1]} />{/key}
 {:else if seg[0] === 'exam' && seg[1] && seg[2] === 'new'}
   {#key seg[1]}<QuestionForm examId={seg[1]} />{/key}
 {:else if seg[0] === 'exam' && seg[1]}

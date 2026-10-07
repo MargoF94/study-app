@@ -88,6 +88,15 @@ export interface Ink extends BaseRecord {
   width?: number;
 }
 
+/** A link to a web page, Google Doc or Sheet, PDF… on a question, or on the whole exam when questionId is empty. */
+export interface Link extends BaseRecord {
+  examId: string;
+  questionId?: string;
+  url: string;
+  title: string;
+  order: number;
+}
+
 /** What happened when you answered a question. id = question id. */
 export interface Progress extends BaseRecord {
   examId: string;
@@ -121,11 +130,12 @@ export interface Collections {
   progress: Progress[];
   sessions: Session[];
   settings: Settings[];
+  links: Link[];
 }
 
 export type CollectionName = keyof Collections;
 
-export const COLLECTION_NAMES: CollectionName[] = ['exams', 'sets', 'questions', 'notes', 'marks', 'ink', 'progress', 'sessions', 'settings'];
+export const COLLECTION_NAMES: CollectionName[] = ['exams', 'sets', 'questions', 'notes', 'marks', 'ink', 'progress', 'sessions', 'settings', 'links'];
 
 /** Width of a question page and memo pad in page units. Handwriting is stored in these units. */
 export const PAGE_WIDTH = 440;

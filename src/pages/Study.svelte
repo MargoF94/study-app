@@ -6,6 +6,7 @@
   import MarkedText from '../components/MarkedText.svelte';
   import MemoPad from '../components/MemoPad.svelte';
   import QuestionPage from '../components/QuestionPage.svelte';
+  import LinkRow from '../components/LinkRow.svelte';
   import TopBar from '../components/TopBar.svelte';
   import { router } from '../lib/router.svelte';
   import { store } from '../lib/store.svelte';
@@ -85,6 +86,11 @@
     else if (e.key === 'ArrowLeft') void go(-1);
   }
 
+  const qLinks = $derived(question ? store.linksFor(question) : []);
+  const examLinkCount = $derived(store.linksOf(examId).filter((l) => !l.questionId).length);
+  // Links may give the answer away: in Clean mode they appear once the answer is checked.
+  const showLinks = $derived(!!question && (ui.notes || (checked && (qLinks.length > 0 || examLinkCount > 0))));
+
   const atEnd = $derived(index >= total - 1);
   const correctLabel = $derived(question ? question.correct.map((i) => i + 1).join(' and ') : '');
 </script>
@@ -156,6 +162,24 @@
             {/if}
           </section>
         {/if}
+      {/if}
+
+      {#if showLinks && question}
+        <section class="card qlinks">
+          <div class="lhead">
+            <h2 class="m0">Links <span class="small muted">· this question</span></h2>
+            <a class="btn small" href="#/link/new?exam={examId}&q={question.id}"><Icon name="plus" size={17} /> Add link</a>
+          </div>
+          {#each qLinks as l (l.id)}
+            <LinkRow link={l} />
+          {:else}
+            <p class="small muted none">No links on this question yet.</p>
+          {/each}
+          <a class="examlinks" href="#/exam/{examId}/links">
+            <span>{examLinkCount ? `Exam links (${examLinkCount})` : 'All links in this exam'}</span>
+            <Icon name="next" size={18} />
+          </a>
+        </section>
       {/if}
 
       {#if ui.notes}
@@ -322,6 +346,38 @@
 
   .ref {
     margin: 6px 0 0;
+  }
+
+  .qlinks {
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .lhead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 12px 6px 16px;
+  }
+
+  .none {
+    margin: 0;
+    padding: 4px 16px 12px;
+  }
+
+  .examlinks {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 46px;
+    padding: 0 16px;
+    border-top: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
   }
 
   .notes {

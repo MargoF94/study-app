@@ -1,6 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import Icon from '../components/Icon.svelte';
+  import ExamLinks from '../components/ExamLinks.svelte';
   import TopBar from '../components/TopBar.svelte';
   import { questionsCsv } from '../lib/export';
   import { router } from '../lib/router.svelte';
@@ -182,6 +183,8 @@
         <button type="button" class="btn soon" disabled>Exam mode (timed, scored): coming later</button>
       </section>
     {/if}
+
+    <ExamLinks {examId} />
 
     <section class="card list">
       <h2>Questions</h2>

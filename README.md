@@ -19,6 +19,9 @@ Reading Log and Money Log. Your data stays on your devices and syncs to a privat
   Exam mode (timed, scored) comes later.
 - **Notes**: a typed note per question, text highlights (select words in the question, an option or
   the explanation), and handwriting: over the question itself and on a memo pad below it.
+- **Links**: add web pages, Google Docs/Sheets/Slides, PDFs or videos to a question or to the whole
+  exam, each with a title. The kind is recognised from the address. The exam page lists them all.
+  In Clean mode a question's links appear only after you check your answer.
 - **Clean / Notes**: Clean hides every note, highlight and handwriting; Notes shows all of it.
 
 ## Using it
@@ -63,6 +66,7 @@ study-data/
   exams/<exam>/questions.json        questions
   exams/<exam>/notes.json            typed notes and highlights
   exams/<exam>/progress.json         answers and flags
+  exams/<exam>/links.json            links on questions and on the exam
   exams/<exam>/ink/<question>.json   handwriting for one question
 ```
 

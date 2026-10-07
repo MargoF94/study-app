@@ -15,7 +15,9 @@ class StudyDb extends Dexie {
     super('study-log');
     const schema: Record<string, string> = { meta: 'key' };
     for (const name of COLLECTION_NAMES) schema[name] = 'id';
-    this.version(1).stores(schema);
+    const { links: _links, ...v1 } = schema;
+    this.version(1).stores(v1);
+    this.version(2).stores(schema); // + links
   }
 
   coll(name: CollectionName): Table<BaseRecord, string> {

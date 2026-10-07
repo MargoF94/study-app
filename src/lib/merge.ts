@@ -3,13 +3,14 @@
 //   exams/<exam>/questions.json        questions
 //   exams/<exam>/notes.json            typed notes and highlights
 //   exams/<exam>/progress.json         answers and flags
+//   exams/<exam>/links.json            links on questions and on the exam
 //   exams/<exam>/ink/<question>.json   handwriting for one question
 // Records are written one per line with sorted keys, so git diffs show exactly
 // which records changed and a file's text (and git sha) only changes with its data.
 import { APP_ID, COLLECTION_NAMES, SCHEMA, type BaseRecord, type CollectionName, type Collections } from './types';
 
 export const MAIN_PATH = 'study.json';
-const EXAM_FILE = /^exams\/[^/]+\/(questions|notes|progress)\.json$/;
+const EXAM_FILE = /^exams\/[^/]+\/(questions|notes|progress|links)\.json$/;
 const INK_FILE = /^exams\/[^/]+\/ink\/[^/]+\.json$/;
 
 export function isDataPath(path: string): boolean {
@@ -17,7 +18,7 @@ export function isDataPath(path: string): boolean {
 }
 
 export function emptyCollections(): Collections {
-  return { exams: [], sets: [], questions: [], notes: [], marks: [], ink: [], progress: [], sessions: [], settings: [] };
+  return { exams: [], sets: [], questions: [], notes: [], marks: [], ink: [], progress: [], sessions: [], settings: [], links: [] };
 }
 
 const byId = (x: BaseRecord, y: BaseRecord) => (x.id < y.id ? -1 : x.id > y.id ? 1 : 0);
@@ -85,6 +86,7 @@ export function toFiles(c: Collections): Map<string, string> {
   for (const n of c.notes) add(`${examDir(n.examId)}/notes.json`, 'notes', n);
   for (const m of c.marks) add(`${examDir(m.examId)}/notes.json`, 'marks', m);
   for (const p of c.progress) add(`${examDir(p.examId)}/progress.json`, 'progress', p);
+  for (const l of c.links) add(`${examDir(l.examId)}/links.json`, 'links', l);
   for (const i of c.ink) add(`${examDir(i.examId)}/ink/${safe(i.questionId)}.json`, 'ink', i);
   for (const [path, g] of groups) {
     if (path.endsWith('/notes.json')) {
