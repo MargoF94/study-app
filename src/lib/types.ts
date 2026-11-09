@@ -143,8 +143,11 @@ export type CollectionName = keyof Collections;
 
 export const COLLECTION_NAMES: CollectionName[] = ['exams', 'sets', 'questions', 'notes', 'marks', 'ink', 'progress', 'sessions', 'settings', 'links'];
 
-/** Width of a question page and memo pad in page units. Handwriting is stored in these units. */
+/** Width of a question page in page units on phones (and before wide pages). Handwriting is stored in these units. */
 export const PAGE_WIDTH = 440;
+
+/** Width of a question page on iPads and computers: as wide as Clean mode, in every mode. */
+export const WIDE_PAGE_WIDTH = 680;
 
 /** Width of a new memo pad in page units: wide, so it fills an iPad screen. */
 export const MEMO_WIDTH = 900;

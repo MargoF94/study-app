@@ -50,13 +50,17 @@ export function sizeIndex(scale: number): number {
 export interface TextStyle {
   font: FontKey;
   scale: number;
+  /** Page width in page units (see lib/layout). Missing = the narrow 440 page used before wide pages. */
+  width?: number;
 }
+
+const NARROW = 440;
 
 /** Handwriting made before text styles existed was written on the original look. */
 export const ORIGINAL_STYLE: TextStyle = { font: 'default', scale: 1 };
 
 export function sameStyle(a: TextStyle, b: TextStyle): boolean {
-  return a.font === b.font && Math.abs(a.scale - b.scale) < 0.001;
+  return a.font === b.font && Math.abs(a.scale - b.scale) < 0.001 && (a.width ?? NARROW) === (b.width ?? NARROW);
 }
 
 /**

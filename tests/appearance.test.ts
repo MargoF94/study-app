@@ -69,3 +69,35 @@ describe('handwriting keeps the text style it was written on', () => {
     expect(sameStyle(current, old)).toBe(false);
   });
 });
+
+describe('page layout', async () => {
+  const { layoutFor, pageGeometry } = await import('../src/lib/layout');
+
+  test('iPads and computers get the wide page, phones the narrow one', () => {
+    expect(layoutFor(802)).toBe(680);
+    expect(layoutFor(828)).toBe(680);
+    expect(layoutFor(358)).toBe(440);
+  });
+
+  test('the wide page is exactly as wide as Clean mode, in every mode', () => {
+    // iPad 11" portrait: Clean column 802; Notes uses the full width for margins, also 802.
+    expect(pageGeometry(680, 802, 802).width).toBeCloseTo(802);
+    // Landscape: Clean column 828; Notes frame 1162 (whole screen) with the page still 828 wide.
+    const clean = pageGeometry(680, 828, 828);
+    const notes = pageGeometry(680, 1162, 828);
+    expect(notes.width).toBeCloseTo(clean.width);
+    expect(notes.scale).toBeCloseTo(clean.scale);
+    expect(notes.offset).toBeCloseTo((1162 - 828) / 2);
+    expect(notes.margin).toBeCloseTo(notes.offset / notes.scale);
+  });
+
+  test('a narrow page (phones, older handwriting) keeps its old size', () => {
+    expect(pageGeometry(440, 802, 802).width).toBeCloseTo(616); // capped at 1.4×, as before
+    expect(pageGeometry(440, 358, 358).scale).toBeCloseTo(358 / 440);
+  });
+
+  test('handwriting from before wide pages counts as written on the narrow page', () => {
+    expect(sameStyle({ font: 'default', scale: 1 }, { font: 'default', scale: 1, width: 440 })).toBe(true);
+    expect(sameStyle({ font: 'default', scale: 1 }, { font: 'default', scale: 1, width: 680 })).toBe(false);
+  });
+});

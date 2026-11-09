@@ -75,7 +75,7 @@
 </script>
 
 {#if pending}
-  <div class="menu" style:left="{pos.x}px" style:top="{pos.y}px" role="toolbar" aria-label="Highlight">
+  <div class="menu" data-floating style:left="{pos.x}px" style:top="{pos.y}px" role="toolbar" aria-label="Highlight">
     <!-- pointerdown is cancelled so tapping the menu doesn't clear the selection first -->
     <button type="button" class="btn small primary" onpointerdown={(e) => e.preventDefault()} onclick={() => apply(false)}>
       <Icon name="highlight" size={16} /> Highlight

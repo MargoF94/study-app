@@ -10,10 +10,11 @@
   import LinkRow from '../components/LinkRow.svelte';
   import TopBar from '../components/TopBar.svelte';
   import { ORIGINAL_STYLE, fontOption, sameStyle, styleForInk, type TextStyle } from '../lib/appearance';
+  import { layoutFor } from '../lib/layout';
   import { router } from '../lib/router.svelte';
   import { store } from '../lib/store.svelte';
   import { isRight, recordAnswer } from '../lib/study';
-  import type { Question, Stroke } from '../lib/types';
+  import { PAGE_WIDTH, type Question, type Stroke } from '../lib/types';
   import { ui } from '../lib/ui.svelte';
   import { debounce, nowIso } from '../lib/util';
 
@@ -49,11 +50,18 @@
   const pageInk = $derived(question ? store.inkFor(question.id, 'page') : undefined);
   const pageStrokes = $derived(pageInk?.strokes ?? []);
 
-  // Handwriting on a question stays on its words: the question keeps the font and size it
-  // was written on, even after the reading settings change (until you choose otherwise).
-  const currentStyle = $derived<TextStyle>({ font: fontOption(store.settings.font).key, scale: ui.textScale });
+  // The reading column (Clean mode's width). On iPads and computers the question page is
+  // laid out wide and fills exactly this width in every mode.
+  let columnWidth = $state(0);
+  let viewportWidth = $state(0);
+  const layoutWidth = $derived(layoutFor(columnWidth || viewportWidth - 32));
+
+  // Handwriting on a question stays on its words: the question keeps the layout, font and
+  // size it was written on, even after they change (until you choose otherwise).
+  const currentStyle = $derived<TextStyle>({ font: fontOption(store.settings.font).key, scale: ui.textScale, width: layoutWidth });
   const pinnedStyle = $derived(pageStrokes.length ? (pageInk?.style ?? ORIGINAL_STYLE) : undefined);
   const keptOldStyle = $derived(!!pinnedStyle && !sameStyle(pinnedStyle, currentStyle));
+  const pageStyle = $derived(ui.notes && pinnedStyle ? pinnedStyle : currentStyle);
 
   let showReading = $state(false);
 
@@ -91,7 +99,7 @@
   }
 
   function useCurrentStyle() {
-    if (!question || !confirm('Show this question in your current font and size? Your handwriting on it may no longer line up with the words.')) return;
+    if (!question || !confirm('Show this question in the current layout, font and size? Your handwriting on it may no longer line up with the words.')) return;
     void store.saveInk(question, 'page', { strokes: pageStrokes, style: currentStyle });
   }
 
@@ -117,7 +125,7 @@
   const correctLabel = $derived(question ? question.correct.map((i) => i + 1).join(' and ') : '');
 </script>
 
-<svelte:window onkeydown={onkey} />
+<svelte:window onkeydown={onkey} bind:innerWidth={viewportWidth} />
 
 {#if !exam}
   <TopBar back="#/" backLabel="Exams" title="Not found" />
@@ -163,6 +171,7 @@
   {/if}
 
   <div class="page-body study" class:wide={ui.notes} bind:this={root}>
+    <div class="ruler" bind:clientWidth={columnWidth} aria-hidden="true"></div>
     {#if !question}
       <div class="card empty">This question was deleted.</div>
     {:else}
@@ -180,14 +189,16 @@
         {ranges}
         strokes={pageStrokes}
         onink={savePageInk}
-        textStyle={ui.notes ? pinnedStyle : undefined}
+        textStyle={pageStyle}
+        fixed={ui.notes || layoutWidth !== PAGE_WIDTH}
+        column={columnWidth}
       />
 
       {#if ui.notes && keptOldStyle}
         <p class="kept small">
           <Icon name="info" size={17} />
-          <span>This question keeps the font and size your handwriting was written on, so it stays on the right words.
-            <button type="button" class="linkish" onclick={useCurrentStyle}>Use my current text settings</button></span>
+          <span>This question keeps the layout your handwriting was written on, so it stays on the right words.
+            <button type="button" class="linkish" onclick={useCurrentStyle}>Use the current layout</button></span>
         </p>
       {/if}
 
@@ -282,7 +293,8 @@
     max-width: none;
   }
 
-  .study.wide > :global(*:not(.frame):not(.notes)) {
+  /* Floating things (the Highlight button) are placed by themselves and are left out. */
+  .study.wide > :global(*:not(.frame):not(.notes):not([data-floating])) {
     width: 100%;
     max-width: calc(var(--page-max) - 32px);
     margin-inline: auto;
@@ -383,6 +395,12 @@
 
   .explain .ref {
     font-size: calc(0.875rem * var(--read-scale));
+  }
+
+  /* Measures the reading column; takes no space. */
+  .ruler {
+    height: 0;
+    margin-bottom: -14px;
   }
 
   .kept {

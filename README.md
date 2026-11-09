@@ -54,9 +54,11 @@ or Japanese:
 ### Handwriting on iPad
 
 Tap **Write**. With **Pencil only** (the default), Apple Pencil writes and your finger scrolls, so your
-hand never leaves marks. Handwriting over a question is stored in page units: in Notes mode the
-question is laid out at a fixed page width and scaled to the screen, so marks stay on the same words on
-every device.
+hand never leaves marks. Handwriting over a question is stored in page units: the question is laid
+out at a fixed page width and scaled to the screen, so marks stay on the same words on every device and
+in both orientations. On iPads and computers that page fills the reading column in every mode, so
+Clean, Notes and Write look exactly the same; phones use a narrower page. A question you wrote on keeps
+the layout it was written on (with a link to switch it to the current one).
 
 ## Data
 

@@ -1,10 +1,12 @@
 <script lang="ts">
-  // The question and its options. In Notes mode it is laid out at a fixed page
-  // width (PAGE_WIDTH) and scaled to the screen, so handwriting over it stays on
-  // the same words on a phone, an iPad or a computer. Nothing in it changes size
-  // when the answer is checked, for the same reason. A question with handwriting
-  // keeps the text style it was written on (textStyle), so the marks stay on their words.
+  // The question and its options, laid out at a fixed page width (textStyle.width, in page
+  // units) and scaled to the screen, so handwriting over it stays on the same words on a
+  // phone, an iPad or a computer. On iPads and computers the page is used in every mode
+  // (`fixed`), so Clean, Notes and Write look exactly the same; phones reflow the text in
+  // Clean mode. Nothing changes size when the answer is checked, for the same reason.
+  // A question with handwriting keeps the style it was written on (textStyle).
   import { fontOption, type TextStyle } from '../lib/appearance';
+  import { pageGeometry } from '../lib/layout';
   import { PAGE_WIDTH, type MarkRange, type Question, type Stroke } from '../lib/types';
   import Icon from './Icon.svelte';
   import InkLayer from './InkLayer.svelte';
@@ -21,6 +23,8 @@
     strokes,
     onink,
     textStyle,
+    fixed,
+    column,
   }: {
     question: Question;
     chosen: number[];
@@ -31,19 +35,23 @@
     ranges: MarkRange[];
     strokes: Stroke[];
     onink: (s: Stroke[]) => void;
-    /** The text style to lay the page out in, when it differs from the reading settings. */
-    textStyle?: TextStyle;
+    /** Font, text size and page width to lay the page out in. */
+    textStyle: TextStyle;
+    /** Laid out at the fixed page width (always on iPads and computers; in Notes mode on phones). */
+    fixed: boolean;
+    /** Width of the reading column (Clean mode's width), which a wide page fills. */
+    column: number;
   } = $props();
 
-  const pinnedFont = $derived(textStyle ? fontOption(textStyle.font) : null);
-
-  const MAX_SCALE = 1.4;
+  const font = $derived(fontOption(textStyle.font));
+  const layout = $derived(textStyle.width ?? PAGE_WIDTH);
   let width = $state(0);
   let innerHeight = $state(0);
-  const scale = $derived(width ? Math.min(width / PAGE_WIDTH, MAX_SCALE) : 1);
+  const geo = $derived(pageGeometry(layout, width, column));
+  const scale = $derived(width ? geo.scale : 1);
   const multi = $derived(question.correct.length > 1);
   /** Free space beside the page, in page units: writable too. */
-  const margin = $derived(notes && width ? Math.max(0, (width - PAGE_WIDTH * scale) / 2 / scale) : 0);
+  const margin = $derived(notes && width ? geo.margin : 0);
 
   function optState(i: number): 'right' | 'wrong' | 'missed' | 'chosen' | '' {
     const isChosen = chosen.includes(i);
@@ -70,16 +78,16 @@
   }
 </script>
 
-<div class="frame" class:fixed={notes} bind:clientWidth={width} style:height={notes ? `${innerHeight * scale}px` : undefined}>
+<div class="frame" class:fixed bind:clientWidth={width} style:height={fixed ? `${innerHeight * scale}px` : undefined}>
   <div
     class="page"
     bind:offsetHeight={innerHeight}
-    style:width={notes ? `${PAGE_WIDTH}px` : undefined}
-    style:transform={notes ? `scale(${scale})` : undefined}
-    style:margin-left={notes && width > PAGE_WIDTH * scale ? `${(width - PAGE_WIDTH * scale) / 2}px` : undefined}
-    style:--page-q={pinnedFont?.question}
-    style:--page-body={pinnedFont?.body}
-    style:--page-scale={textStyle ? String(textStyle.scale) : undefined}
+    style:width={fixed ? `${layout}px` : undefined}
+    style:transform={fixed ? `scale(${scale})` : undefined}
+    style:margin-left={fixed && geo.offset > 0 ? `${geo.offset}px` : undefined}
+    style:--page-q={font.question}
+    style:--page-body={font.body}
+    style:--page-scale={String(textStyle.scale)}
   >
     {#if question.topic}<span class="topic">{question.topic}</span>{/if}
     <p class="qtext"><MarkedText text={question.text} field="q" {ranges} show={notes} /></p>
