@@ -73,10 +73,15 @@
     busy = true;
     try {
       const now = nowIso();
+      // Counted before saving: afterwards the plan is worked out again against the saved
+      // questions, and everything just imported would count as unchanged.
+      const newCount = plan.counts.new;
+      const changedCount = plan.counts.changed;
+      const removedCount = removeMissing ? plan.missing.length : 0;
       const records = buildImport(plan, { exam, newExamName: newName, examOrder: store.exams.length }, store.sets, removeMissing, now);
       await store.applyImport(records);
       const examId = exam?.id ?? records.exam!.id;
-      const parts = [plan.counts.new && `${plural(plan.counts.new, 'new question')}`, plan.counts.changed && `${plan.counts.changed} updated`, removeMissing && plan.missing.length && `${plan.missing.length} removed`].filter(Boolean);
+      const parts = [newCount && plural(newCount, 'new question'), changedCount && `${changedCount} updated`, removedCount && `${removedCount} removed`].filter(Boolean);
       toasts.show(parts.length ? `Imported: ${parts.join(', ')}.` : 'Nothing changed.');
       router.go(`/exam/${examId}`, true);
     } finally {
