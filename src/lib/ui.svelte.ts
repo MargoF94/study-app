@@ -14,6 +14,8 @@ interface Step {
 class Ui {
   mode = $state<ViewMode>(loadPref('mode', 'clean'));
   pencilOnly = $state<boolean>(loadPref('pencilOnly', true));
+  /** Reading text size, a multiple of normal. Set on each device: screens differ. */
+  textScale = $state<number>(loadPref('textScale', 1));
   writing = $state(false);
   tool = $state<Tool>('pen');
   penColor = $state<InkColor>('ink');
@@ -32,6 +34,11 @@ class Ui {
     this.mode = mode;
     if (mode === 'clean') this.writing = false;
     savePref('mode', mode);
+  }
+
+  setTextScale(scale: number) {
+    this.textScale = scale;
+    savePref('textScale', scale);
   }
 
   setPencilOnly(on: boolean) {

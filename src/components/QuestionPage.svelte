@@ -2,7 +2,9 @@
   // The question and its options. In Notes mode it is laid out at a fixed page
   // width (PAGE_WIDTH) and scaled to the screen, so handwriting over it stays on
   // the same words on a phone, an iPad or a computer. Nothing in it changes size
-  // when the answer is checked, for the same reason.
+  // when the answer is checked, for the same reason. A question with handwriting
+  // keeps the text style it was written on (textStyle), so the marks stay on their words.
+  import { fontOption, type TextStyle } from '../lib/appearance';
   import { PAGE_WIDTH, type MarkRange, type Question, type Stroke } from '../lib/types';
   import Icon from './Icon.svelte';
   import InkLayer from './InkLayer.svelte';
@@ -18,6 +20,7 @@
     ranges,
     strokes,
     onink,
+    textStyle,
   }: {
     question: Question;
     chosen: number[];
@@ -28,7 +31,11 @@
     ranges: MarkRange[];
     strokes: Stroke[];
     onink: (s: Stroke[]) => void;
+    /** The text style to lay the page out in, when it differs from the reading settings. */
+    textStyle?: TextStyle;
   } = $props();
+
+  const pinnedFont = $derived(textStyle ? fontOption(textStyle.font) : null);
 
   const MAX_SCALE = 1.4;
   let width = $state(0);
@@ -70,6 +77,9 @@
     style:width={notes ? `${PAGE_WIDTH}px` : undefined}
     style:transform={notes ? `scale(${scale})` : undefined}
     style:margin-left={notes && width > PAGE_WIDTH * scale ? `${(width - PAGE_WIDTH * scale) / 2}px` : undefined}
+    style:--page-q={pinnedFont?.question}
+    style:--page-body={pinnedFont?.body}
+    style:--page-scale={textStyle ? String(textStyle.scale) : undefined}
   >
     {#if question.topic}<span class="topic">{question.topic}</span>{/if}
     <p class="qtext"><MarkedText text={question.text} field="q" {ranges} show={notes} /></p>
@@ -122,6 +132,7 @@
     border-radius: 12px;
     box-shadow: var(--shadow);
     transform-origin: top left;
+    font-family: var(--page-body, var(--read-body));
   }
 
   .fixed .page {
@@ -140,14 +151,14 @@
 
   .qtext {
     margin: 0;
-    font-family: var(--font-serif);
-    font-size: 17px;
+    font-family: var(--page-q, var(--read-q));
+    font-size: calc(17px * var(--page-scale, var(--read-scale)));
     line-height: 1.55;
   }
 
   .choose {
     margin: -4px 0 0;
-    font-size: 13px;
+    font-size: calc(13px * var(--page-scale, var(--read-scale)));
     font-weight: 650;
     color: var(--text-2);
   }
@@ -167,7 +178,7 @@
     border: 2px solid var(--border);
     border-radius: 10px;
     background: var(--surface);
-    font-size: 15px;
+    font-size: calc(15px * var(--page-scale, var(--read-scale)));
     line-height: 1.45;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
@@ -242,9 +253,9 @@
 
   /* Clean mode: normal text that fits the screen, a little larger on big screens. */
   .frame:not(.fixed) .qtext {
-    font-size: clamp(17px, 1rem + 0.5vw, 21px);
+    font-size: calc(clamp(17px, 1rem + 0.5vw, 21px) * var(--read-scale));
   }
   .frame:not(.fixed) .opt {
-    font-size: clamp(15px, 0.9rem + 0.3vw, 18px);
+    font-size: calc(clamp(15px, 0.9rem + 0.3vw, 18px) * var(--read-scale));
   }
 </style>

@@ -165,7 +165,8 @@
     line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    font-size: 0.95rem;
+    font-family: var(--read-body);
+    font-size: calc(0.95rem * var(--read-scale));
   }
 
   .dot {

@@ -1,12 +1,12 @@
 <script lang="ts">
   import Icon from '../components/Icon.svelte';
+  import ReadingSettings from '../components/ReadingSettings.svelte';
   import TopBar from '../components/TopBar.svelte';
   import { checkRepo } from '../lib/github';
   import { parseFile, toBackup } from '../lib/merge';
   import { store } from '../lib/store.svelte';
   import { sync } from '../lib/sync.svelte';
   import { toasts } from '../lib/toast.svelte';
-  import type { Theme } from '../lib/types';
   import { ui } from '../lib/ui.svelte';
   import { downloadText, nowIso, plural, today } from '../lib/util';
 
@@ -113,15 +113,8 @@
   </section>
 
   <section class="card stack">
-    <h2 class="m0">Appearance</h2>
-    <label class="field">
-      <span>Theme</span>
-      <select value={store.settings.theme} onchange={(e) => store.saveSettings({ theme: e.currentTarget.value as Theme })}>
-        <option value="system">Match device</option>
-        <option value="light">Light</option>
-        <option value="dark">Dark</option>
-      </select>
-    </label>
+    <h2 class="m0">Reading</h2>
+    <ReadingSettings />
   </section>
 
   <section class="card stack">

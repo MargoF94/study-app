@@ -10,6 +10,16 @@
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
     <title>Study Log</title>
+    <script>
+      // Paint the reading colours, font and size chosen on this device before the app loads.
+      try {
+        var paint = JSON.parse(localStorage.getItem('study-log:paint') || 'null');
+        if (paint) {
+          if (paint.theme) document.documentElement.dataset.theme = paint.theme;
+          for (var k in paint.vars) document.documentElement.style.setProperty(k, paint.vars[k]);
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="app"></div>

@@ -22,6 +22,11 @@ Reading Log and Money Log. Your data stays on your devices and syncs to a privat
 - **Links**: add web pages, Google Docs/Sheets/Slides, PDFs or videos to a question or to the whole
   exam, each with a title. The kind is recognised from the address. The exam page lists them all.
   In Clean mode a question's links appear only after you check your answer.
+- **Reading**: choose the font (Default, Roboto, Roboto Mono, Literata, Serif or Sans), the text size
+  and the background: Kindle's White, Sepia, Green or Black, or the app's own light/dark colours
+  (Settings → Reading, or **Aa** on the study screen on iPad and computer). Font and colours apply on
+  every device; text size is set on each device. A question you have written on keeps the font and
+  size it was written on, so the handwriting stays on its words.
 - **Clean / Notes**: Clean hides every note, highlight and handwriting; Notes shows all of it.
 
 ## Using it

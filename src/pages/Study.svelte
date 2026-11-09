@@ -6,8 +6,10 @@
   import MarkedText from '../components/MarkedText.svelte';
   import MemoPad from '../components/MemoPad.svelte';
   import QuestionPage from '../components/QuestionPage.svelte';
+  import ReadingSettings from '../components/ReadingSettings.svelte';
   import LinkRow from '../components/LinkRow.svelte';
   import TopBar from '../components/TopBar.svelte';
+  import { ORIGINAL_STYLE, fontOption, sameStyle, styleForInk, type TextStyle } from '../lib/appearance';
   import { router } from '../lib/router.svelte';
   import { store } from '../lib/store.svelte';
   import { isRight, recordAnswer } from '../lib/study';
@@ -44,7 +46,16 @@
 
   const progress = $derived(question ? store.progress.get(question.id) : undefined);
   const ranges = $derived(question ? (store.marks.get(question.id)?.ranges ?? []) : []);
-  const pageStrokes = $derived(question ? (store.inkFor(question.id, 'page')?.strokes ?? []) : []);
+  const pageInk = $derived(question ? store.inkFor(question.id, 'page') : undefined);
+  const pageStrokes = $derived(pageInk?.strokes ?? []);
+
+  // Handwriting on a question stays on its words: the question keeps the font and size it
+  // was written on, even after the reading settings change (until you choose otherwise).
+  const currentStyle = $derived<TextStyle>({ font: fontOption(store.settings.font).key, scale: ui.textScale });
+  const pinnedStyle = $derived(pageStrokes.length ? (pageInk?.style ?? ORIGINAL_STYLE) : undefined);
+  const keptOldStyle = $derived(!!pinnedStyle && !sameStyle(pinnedStyle, currentStyle));
+
+  let showReading = $state(false);
 
   function choose(i: number) {
     if (checked || !question) return;
@@ -74,10 +85,21 @@
   const saveNoteSoon = debounce((q: Question, text: string) => void store.saveNote(q, text), 800);
 
   function savePageInk(next: Stroke[]) {
-    if (question) void store.saveInk(question, 'page', { strokes: next });
+    if (!question) return;
+    const before = store.inkFor(question.id, 'page');
+    void store.saveInk(question, 'page', { strokes: next, style: styleForInk(before, next.length, currentStyle) });
+  }
+
+  function useCurrentStyle() {
+    if (!question || !confirm('Show this question in your current font and size? Your handwriting on it may no longer line up with the words.')) return;
+    void store.saveInk(question, 'page', { strokes: pageStrokes, style: currentStyle });
   }
 
   function onkey(e: KeyboardEvent) {
+    if (e.key === 'Escape' && showReading) {
+      showReading = false;
+      return;
+    }
     const t = e.target as HTMLElement;
     if (t.closest('input, textarea, select, [contenteditable]') || e.metaKey || e.ctrlKey || e.altKey) return;
     if (/^[1-9]$/.test(e.key) && question && Number(e.key) <= question.options.length) choose(Number(e.key) - 1);
@@ -110,6 +132,9 @@
         <button type="button" aria-pressed={ui.mode === 'clean'} class:on={ui.mode === 'clean'} onclick={() => ui.setMode('clean')}>Clean</button>
         <button type="button" aria-pressed={ui.mode === 'notes'} class:on={ui.mode === 'notes'} onclick={() => ui.setMode('notes')}>Notes</button>
       </div>
+      <button type="button" class="btn ghost icon aa-btn" class:on={showReading} aria-pressed={showReading} aria-label="Text and colours" title="Text and colours" onclick={() => (showReading = !showReading)}>
+        <span class="aa-label">Aa</span>
+      </button>
       <button type="button" class="btn ghost write" class:on={ui.writing} aria-pressed={ui.writing} onclick={() => ui.toggleWriting()} title="Write by hand">
         <Icon name="pen" /><span class="wl">Write</span>
       </button>
@@ -124,6 +149,17 @@
 
   {#if ui.writing}
     <div class="toolbar-wrap"><InkToolbar /></div>
+  {/if}
+
+  {#if showReading}
+    <button type="button" class="reading-backdrop" aria-label="Close text and colours" onclick={() => (showReading = false)}></button>
+    <div class="reading-panel card" role="dialog" aria-label="Text and colours">
+      <div class="row between">
+        <h2 class="m0">Text and colours</h2>
+        <button type="button" class="btn ghost icon" aria-label="Close" onclick={() => (showReading = false)}><Icon name="close" /></button>
+      </div>
+      <ReadingSettings preview={false} />
+    </div>
   {/if}
 
   <div class="page-body study" class:wide={ui.notes} bind:this={root}>
@@ -144,7 +180,16 @@
         {ranges}
         strokes={pageStrokes}
         onink={savePageInk}
+        textStyle={ui.notes ? pinnedStyle : undefined}
       />
+
+      {#if ui.notes && keptOldStyle}
+        <p class="kept small">
+          <Icon name="info" size={17} />
+          <span>This question keeps the font and size your handwriting was written on, so it stays on the right words.
+            <button type="button" class="linkish" onclick={useCurrentStyle}>Use my current text settings</button></span>
+        </p>
+      {/if}
 
       {#if checked}
         <div class="result" class:right={wasRight} role="status">
@@ -327,6 +372,79 @@
   .result.right {
     background: var(--ok-soft);
     color: var(--ok);
+  }
+
+  /* Reading text follows Settings → Reading. */
+  .explain p,
+  .notes textarea {
+    font-family: var(--read-body);
+    font-size: calc(1rem * var(--read-scale));
+  }
+
+  .explain .ref {
+    font-size: calc(0.875rem * var(--read-scale));
+  }
+
+  .kept {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin: -4px 0 0;
+    color: var(--text-2);
+  }
+
+  .kept :global(svg) {
+    margin-top: 2px;
+  }
+
+  .linkish {
+    border: 0;
+    padding: 0;
+    background: none;
+    color: var(--accent);
+    font: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+  }
+
+  .aa-btn.on {
+    background: var(--accent-soft);
+  }
+
+  .aa-label {
+    font-family: var(--font-serif);
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  /* On phones the top bar is full: text settings are in Settings → Reading there. */
+  @media (max-width: 600px) {
+    .aa-btn {
+      display: none;
+    }
+  }
+
+  .reading-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    border: 0;
+    background: rgb(0 0 0 / 0.2);
+  }
+
+  .reading-panel {
+    position: fixed;
+    z-index: 41;
+    top: calc(64px + env(safe-area-inset-top));
+    right: max(12px, calc((100vw - var(--page-max)) / 2));
+    width: min(420px, calc(100vw - 24px));
+    max-height: calc(100dvh - 90px);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: 0 8px 30px rgb(0 0 0 / 0.25);
   }
 
   .explain {

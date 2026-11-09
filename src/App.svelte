@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { applyAppearance } from './lib/paint';
   import { router } from './lib/router.svelte';
   import { store } from './lib/store.svelte';
   import { sync } from './lib/sync.svelte';
@@ -27,11 +28,11 @@
     }
   });
 
-  // Theme: "system" follows the device; otherwise force light/dark.
+  // Page colour, reading font and text size (Settings → Reading).
   $effect(() => {
-    const theme = store.settings.theme;
-    if (theme === 'system') delete document.documentElement.dataset.theme;
-    else document.documentElement.dataset.theme = theme;
+    // Until your data has loaded, the colours painted from this device's last visit stay.
+    if (!store.loaded) return;
+    applyAppearance(store.settings.theme, store.settings.font, ui.textScale);
   });
 
   const seg = $derived(router.route.segments);

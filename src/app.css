@@ -47,6 +47,10 @@
   --ink-yellow: #f0c83c;
   --ink-pink: #e86fa8;
   --page-max: 860px;
+  /* Reading text: set from Settings → Reading. Defaults are the original look. */
+  --read-q: var(--font-serif);
+  --read-body: var(--font);
+  --read-scale: 1;
   color-scheme: light;
 }
 

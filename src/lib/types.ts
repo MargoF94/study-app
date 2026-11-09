@@ -1,3 +1,5 @@
+import type { FontKey, TextStyle, ThemeKey } from './appearance';
+
 // Data model. Every record has id, createdAt, updatedAt and an optional
 // `deleted` tombstone so deletions sync between devices.
 
@@ -86,6 +88,8 @@ export interface Ink extends BaseRecord {
   height?: number;
   /** Memo pad width in page units (memos made before it was stored are PAGE_WIDTH wide). */
   width?: number;
+  /** Handwriting on a question: the text style it was written on, kept so it stays on the same words. */
+  style?: TextStyle;
 }
 
 /** A link to a web page, Google Doc or Sheet, PDF… on a question, or on the whole exam when questionId is empty. */
@@ -114,10 +118,12 @@ export interface Session extends BaseRecord {
   label: string;
 }
 
-export type Theme = 'system' | 'light' | 'dark';
+export type Theme = ThemeKey;
 
 export interface Settings extends BaseRecord {
   theme: Theme;
+  /** Reading font (questions, answers, explanations, notes). Missing = the original look. */
+  font?: FontKey;
 }
 
 export interface Collections {
