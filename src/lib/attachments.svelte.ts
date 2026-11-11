@@ -56,6 +56,8 @@ class Attachments {
   #order: string[] = [];
   /** Files GitHub refused: not sent again until the app is next opened. */
   #refused = new Set<string>();
+  /** Downloads under way, by attachment id. */
+  #downloads = new Map<string, Promise<Blob | undefined>>();
 
   /** Adds files to a question. Returns how many were added and why any were not. */
   async add(q: Question, files: File[]): Promise<{ added: number; problems: string[] }> {
@@ -108,18 +110,10 @@ class Attachments {
   /** Makes a file ready to show: from this device, or downloaded when it isn't here yet. */
   async load(a: Attachment): Promise<void> {
     if (this.urls[a.id]) return;
-    const blob = await db.getBlob(a.id);
-    if (blob) return this.#show(a.id, blob, a.type);
-    const sha = this.#remote.get(a.path);
-    if (this.#cfg && sha && navigator.onLine) {
-      try {
-        await this.#download(this.#cfg, a, sha, true);
-        return;
-      } catch {
-        /* shown as not downloaded; tried again after the next sync */
-      }
-    }
-    this.missing = { ...this.missing, [a.id]: true };
+    // Not downloaded (offline, or not synced yet): shown as such, and tried again after the next sync.
+    const blob = (await db.getBlob(a.id)) ?? (await this.#fetch(a).catch(() => undefined));
+    if (blob) this.#show(a.id, blob, a.type);
+    else this.missing = { ...this.missing, [a.id]: true };
   }
 
   /** The file itself, for sharing or saving. */
@@ -151,12 +145,24 @@ class Attachments {
     this.urls = rest;
   }
 
-  /** Downloads a file to this device; `show` makes it ready to show too. */
-  async #download(cfg: SyncConfig, a: Attachment, sha: string, show: boolean) {
-    const bytes = await getBlobBytes(cfg, sha);
-    const blob = new Blob([bytes as BlobPart], { type: a.type });
-    await db.putBlob(a.id, blob);
-    if (show) this.#show(a.id, blob, a.type);
+  /** Downloads a file to this device: once, however many ask for it at the same time. */
+  #fetch(a: Attachment): Promise<Blob | undefined> {
+    const cfg = this.#cfg;
+    const sha = this.#remote.get(a.path);
+    if (!cfg || !sha || !navigator.onLine) return Promise.resolve(undefined);
+    let job = this.#downloads.get(a.id);
+    if (!job) {
+      job = (async () => {
+        const here = await db.getBlob(a.id); // finished a moment ago
+        if (here) return here;
+        const bytes = await getBlobBytes(cfg, sha);
+        const blob = new Blob([bytes as BlobPart], { type: a.type });
+        await db.putBlob(a.id, blob);
+        return blob;
+      })().finally(() => this.#downloads.delete(a.id));
+      this.#downloads.set(a.id, job);
+    }
+    return job;
   }
 
   /**
@@ -204,12 +210,11 @@ class Attachments {
     try {
       const here = await db.blobIds();
       for (const a of store.data.files) {
-        if (a.deleted || here.has(a.id)) continue;
-        const sha = this.#remote.get(a.path);
-        if (!sha) continue;
+        if (a.deleted || here.has(a.id) || !this.#remote.has(a.path)) continue;
         try {
-          // Shown straight away only if it's on screen, waiting.
-          await this.#download(cfg, a, sha, !!this.missing[a.id]);
+          const blob = await this.#fetch(a);
+          // Shown straight away if it's on screen, waiting for it.
+          if (blob && this.missing[a.id]) this.#show(a.id, blob, a.type);
         } catch {
           /* tried again after the next sync */
         }
