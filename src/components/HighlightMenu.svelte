@@ -1,12 +1,17 @@
 <script lang="ts">
   // Select text in the question, an option or the explanation, then tap
-  // Highlight (or Remove) in the small menu that appears under the selection.
+  // Highlight (or Remove) in the small menu that appears above the selection.
   import { addMark, overlapsMark, removeMark } from '../lib/marks';
   import { store } from '../lib/store.svelte';
   import type { MarkField, MarkRange, Question } from '../lib/types';
   import Icon from './Icon.svelte';
 
   let { question, enabled, root }: { question: Question; enabled: boolean; root: HTMLElement | undefined } = $props();
+
+  /** Height of the menu: a small button plus padding. */
+  const MENU_HEIGHT = 46;
+  /** Room for the Copy / Look Up bar that iPadOS and iOS show next to selected text. */
+  const SYSTEM_BAR = 64;
 
   let pending = $state<MarkRange | null>(null);
   let pos = $state({ x: 0, y: 0 });
@@ -41,9 +46,18 @@
     const e = offset(a, range.endContainer, range.endOffset);
     if (e <= s) return;
     pending = { f: a.dataset.field as MarkField, s, e };
+    // Above the first line of the selection, where the writing hand doesn't cover it; below
+    // the last line only when there's no room above (under the top bar). On iPad and phones
+    // it keeps clear of the system's own Copy / Look Up bar, which sits right by the selection.
     const rects = range.getClientRects();
-    const last = rects[rects.length - 1] ?? range.getBoundingClientRect();
-    pos = { x: Math.min(Math.max(last.left + last.width / 2, 90), window.innerWidth - 90), y: Math.min(Math.max(last.bottom + 12, 72), window.innerHeight - 64) };
+    const box = range.getBoundingClientRect();
+    const first = rects[0] ?? box;
+    const last = rects[rects.length - 1] ?? box;
+    const barBottom = document.querySelector('.topbar')?.getBoundingClientRect().bottom ?? 56;
+    const gap = navigator.maxTouchPoints > 0 ? SYSTEM_BAR : 10;
+    let y = first.top - MENU_HEIGHT - gap;
+    if (y < barBottom + 6) y = last.bottom + gap;
+    pos = { x: Math.min(Math.max(box.left + box.width / 2, 90), window.innerWidth - 90), y: Math.min(y, window.innerHeight - MENU_HEIGHT - 16) };
   }
 
   $effect(() => {

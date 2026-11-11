@@ -115,7 +115,7 @@
       {/each}
     </div>
     {#if notes}
-      <InkLayer {strokes} active={writing} onchange={onink} label="Handwriting on the question" left={margin} right={margin} />
+      <InkLayer {strokes} active={writing} onchange={onink} label="Handwriting on the question" width={layout} left={margin} right={margin} />
     {/if}
   </div>
 </div>

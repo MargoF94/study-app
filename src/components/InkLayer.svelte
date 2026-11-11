@@ -5,7 +5,7 @@
   // beside the question); strokes there are stored at negative x or past the width.
   // With "Pencil only", fingers and palms scroll and never draw.
   import { addPoint, newStroke, strokePath, touches } from '../lib/ink';
-  import { PAGE_WIDTH, type Stroke } from '../lib/types';
+  import type { Stroke } from '../lib/types';
   import { ui } from '../lib/ui.svelte';
 
   let {
@@ -13,7 +13,7 @@
     active,
     onchange,
     label,
-    width = PAGE_WIDTH,
+    width,
     left = 0,
     right = 0,
   }: {
@@ -21,7 +21,8 @@
     active: boolean;
     onchange: (next: Stroke[]) => void;
     label: string;
-    width?: number;
+    /** Width of the box in page units. Required: a wrong width puts marks away from the pencil. */
+    width: number;
     left?: number;
     right?: number;
   } = $props();
