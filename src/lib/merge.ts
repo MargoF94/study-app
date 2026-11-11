@@ -4,13 +4,14 @@
 //   exams/<exam>/notes.json            typed notes and highlights
 //   exams/<exam>/progress.json         answers and flags
 //   exams/<exam>/links.json            links on questions and on the exam
+//   exams/<exam>/files.json            attached files (the files themselves: exams/<exam>/files/)
 //   exams/<exam>/ink/<question>.json   handwriting for one question
 // Records are written one per line with sorted keys, so git diffs show exactly
 // which records changed and a file's text (and git sha) only changes with its data.
 import { APP_ID, COLLECTION_NAMES, SCHEMA, type BaseRecord, type CollectionName, type Collections } from './types';
 
 export const MAIN_PATH = 'study.json';
-const EXAM_FILE = /^exams\/[^/]+\/(questions|notes|progress|links)\.json$/;
+const EXAM_FILE = /^exams\/[^/]+\/(questions|notes|progress|links|files)\.json$/;
 const INK_FILE = /^exams\/[^/]+\/ink\/[^/]+\.json$/;
 
 export function isDataPath(path: string): boolean {
@@ -18,7 +19,7 @@ export function isDataPath(path: string): boolean {
 }
 
 export function emptyCollections(): Collections {
-  return { exams: [], sets: [], questions: [], notes: [], marks: [], ink: [], progress: [], sessions: [], settings: [], links: [] };
+  return { exams: [], sets: [], questions: [], notes: [], marks: [], ink: [], progress: [], sessions: [], settings: [], links: [], files: [] };
 }
 
 const byId = (x: BaseRecord, y: BaseRecord) => (x.id < y.id ? -1 : x.id > y.id ? 1 : 0);
@@ -70,6 +71,9 @@ const safe = (id: string) => id.replace(/[^A-Za-z0-9_-]/g, '_');
 
 export const examDir = (examId: string) => `exams/${safe(examId)}`;
 
+/** Where an attached file's bytes go in the data repo. */
+export const attachmentPath = (examId: string, id: string, ext: string) => `${examDir(examId)}/files/${safe(id)}${ext ? '.' + ext.replace(/[^A-Za-z0-9]/g, '').toLowerCase() : ''}`;
+
 /** Every file the data repo should hold for these collections, path → text. */
 export function toFiles(c: Collections): Map<string, string> {
   const header = { app: APP_ID, schema: SCHEMA };
@@ -87,6 +91,7 @@ export function toFiles(c: Collections): Map<string, string> {
   for (const m of c.marks) add(`${examDir(m.examId)}/notes.json`, 'marks', m);
   for (const p of c.progress) add(`${examDir(p.examId)}/progress.json`, 'progress', p);
   for (const l of c.links) add(`${examDir(l.examId)}/links.json`, 'links', l);
+  for (const f of c.files) add(`${examDir(f.examId)}/files.json`, 'files', f);
   for (const i of c.ink) add(`${examDir(i.examId)}/ink/${safe(i.questionId)}.json`, 'ink', i);
   for (const [path, g] of groups) {
     if (path.endsWith('/notes.json')) {

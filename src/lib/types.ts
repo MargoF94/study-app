@@ -92,6 +92,26 @@ export interface Ink extends BaseRecord {
   style?: TextStyle;
 }
 
+/**
+ * A screenshot or other file attached to a question. This record syncs like the rest of your
+ * data; the file itself is kept on each device and in the data repo at `path`.
+ */
+export interface Attachment extends BaseRecord {
+  examId: string;
+  questionId: string;
+  /** File name as shown. */
+  name: string;
+  /** MIME type, e.g. image/jpeg or application/pdf. */
+  type: string;
+  /** Size in bytes. */
+  size: number;
+  /** Where the file is in the data repo: exams/<exam>/files/<id>.<ext> */
+  path: string;
+  width?: number;
+  height?: number;
+  order: number;
+}
+
 /** A link to a web page, Google Doc or Sheet, PDF… on a question, or on the whole exam when questionId is empty. */
 export interface Link extends BaseRecord {
   examId: string;
@@ -137,11 +157,12 @@ export interface Collections {
   sessions: Session[];
   settings: Settings[];
   links: Link[];
+  files: Attachment[];
 }
 
 export type CollectionName = keyof Collections;
 
-export const COLLECTION_NAMES: CollectionName[] = ['exams', 'sets', 'questions', 'notes', 'marks', 'ink', 'progress', 'sessions', 'settings', 'links'];
+export const COLLECTION_NAMES: CollectionName[] = ['exams', 'sets', 'questions', 'notes', 'marks', 'ink', 'progress', 'sessions', 'settings', 'links', 'files'];
 
 /** Width of a question page in page units on phones (and before wide pages). Handwriting is stored in these units. */
 export const PAGE_WIDTH = 440;

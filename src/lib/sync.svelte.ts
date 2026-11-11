@@ -5,6 +5,7 @@
 // saves a file first (409), the whole round starts again.
 import { getMeta, setMeta } from './db';
 import { GitHubError, getBlobText, listFiles, putText, type SyncConfig } from './github';
+import { attachments } from './attachments.svelte';
 import { MAIN_PATH, gitBlobSha, isDataPath, parseFile, toFiles } from './merge';
 import { store } from './store.svelte';
 import { debounce, nowIso } from './util';
@@ -26,7 +27,7 @@ export async function changedFiles(local: Map<string, string>, remote: Map<strin
 
 export function commitMessage(path: string): string {
   if (path === MAIN_PATH) return 'Update exams and settings';
-  const m = path.match(/^exams\/[^/]+\/(questions|notes|progress|links)\.json$/);
+  const m = path.match(/^exams\/[^/]+\/(questions|notes|progress|links|files)\.json$/);
   if (m) return `Update ${m[1]}`;
   return 'Update handwriting';
 }
@@ -112,7 +113,9 @@ class Sync {
           known[path] = sha;
         }
         await setMeta(SHAS_KEY, known);
-        // 2. Send what differs.
+        // 2. Attached files first, so a file's record never reaches other devices before the file.
+        await attachments.syncBytes(cfg, remote);
+        // 3. Send what differs.
         const writes = await changedFiles(toFiles(store.data), remote);
         try {
           for (const [path, text] of writes) {
@@ -129,6 +132,8 @@ class Sync {
       await setMeta(LAST_KEY, this.lastSyncedAt);
       this.error = null;
       this.state = 'idle';
+      // Files added on other devices: downloaded in the background, so they open offline too.
+      void attachments.prefetch();
       if (this.#changeCounter === startCounter) this.pending = false;
       else this.#again = true;
     } catch (e) {

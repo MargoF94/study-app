@@ -22,6 +22,13 @@ Reading Log and Money Log. Your data stays on your devices and syncs to a privat
 - **Links**: add web pages, Google Docs/Sheets/Slides, PDFs or videos to a question or to the whole
   exam, each with a title. The kind is recognised from the address. The exam page lists them all.
   In Clean mode a question's links appear only after you check your answer.
+- **Files**: attach screenshots, photos, PDFs or any other file (up to 20 MB each) to a question:
+  **Add** (on iPad: Photos, the camera or Files), **Paste** a copied screenshot (on iPad: take a
+  screenshot, then Done → Copy and Delete), or drop files on the page. Pictures show as thumbnails;
+  tap one to see it full screen (tap to zoom in, swipe for the next). PDFs and text files open in a
+  new tab; other files can be shared or saved. Big pictures are shrunk to 2560 pixels and saved as
+  JPEG; iPhone/iPad HEIC photos become JPEG so every device can show them. Like links, files appear
+  in Clean mode only after you check your answer.
 - **Reading**: choose the font (Default, Roboto, Roboto Mono, Literata, Serif or Sans), the text size
   and the background: Kindle's White, Sepia, Green or Black, or the app's own light/dark colours
   (Settings → Reading, or **Aa** on the study screen on iPad and computer). Font and colours apply on
@@ -74,11 +81,15 @@ study-data/
   exams/<exam>/notes.json            typed notes and highlights
   exams/<exam>/progress.json         answers and flags
   exams/<exam>/links.json            links on questions and on the exam
+  exams/<exam>/files.json            the list of attached files (name, type, size, question)
+  exams/<exam>/files/<id>.<ext>      the attached files themselves
   exams/<exam>/ink/<question>.json   handwriting for one question
 ```
 
 One record per line with sorted keys, so GitHub's history shows exactly what changed. Sync downloads
 only files that changed, merges record by record (newest edit wins) and uploads only what differs.
+Attached files are uploaded before the list that mentions them, are downloaded on your other devices
+after a sync (so they open offline too), and are removed from the repo when you delete them.
 
 ## Development
 

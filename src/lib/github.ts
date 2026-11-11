@@ -98,6 +98,42 @@ export async function putText(cfg: SyncConfig, path: string, text: string, sha: 
   return data.content.sha as string;
 }
 
+/** A binary file (an attached screenshot or document) by its blob sha. */
+export async function getBlobBytes(cfg: SyncConfig, sha: string): Promise<Uint8Array> {
+  const res = await request(cfg, `/git/blobs/${sha}`, {}, 'application/vnd.github.raw+json');
+  if (!res.ok) await fail(res, 'Downloading a file');
+  return new Uint8Array(await res.arrayBuffer());
+}
+
+/** Adds a binary file. Attached files never change, so they are only ever created, not replaced. */
+export async function putBytes(cfg: SyncConfig, path: string, bytes: Uint8Array, message: string): Promise<string | null> {
+  const res = await request(cfg, `/contents/${encodePath(path)}`, {
+    method: 'PUT',
+    body: JSON.stringify({ message, content: bytesToBase64(bytes) }),
+  });
+  // Already there (an earlier attempt that timed out): GitHub asks for the existing file's "sha".
+  if (res.status === 422) {
+    const detail = await res
+      .clone()
+      .json()
+      .then((d: { message?: string }) => d.message ?? '')
+      .catch(() => '');
+    if (/sha/i.test(detail)) return null;
+  }
+  if (!res.ok) await fail(res, 'Uploading a file');
+  const data = await res.json();
+  return data.content.sha as string;
+}
+
+export async function deleteFile(cfg: SyncConfig, path: string, sha: string, message: string): Promise<void> {
+  const res = await request(cfg, `/contents/${encodePath(path)}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ message, sha }),
+  });
+  if (res.status === 404) return; // already gone
+  if (!res.ok) await fail(res, 'Removing a file');
+}
+
 /** Each path segment URL-encoded (file names may contain spaces or Japanese). */
 export function encodePath(path: string): string {
   return path.split('/').map(encodeURIComponent).join('/');

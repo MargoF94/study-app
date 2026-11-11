@@ -19,7 +19,8 @@
     !!store.notes.get(q.id)?.text.trim() ||
     !!store.marks.get(q.id)?.ranges.length ||
     !!store.inkFor(q.id, 'page')?.strokes.length ||
-    !!store.inkFor(q.id, 'memo')?.strokes.length;
+    !!store.inkFor(q.id, 'memo')?.strokes.length ||
+    store.attachmentsFor(q).length > 0;
 
   const list = $derived.by(() => {
     const s = normalize(search);

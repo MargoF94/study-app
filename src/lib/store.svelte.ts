@@ -4,7 +4,7 @@ import * as db from './db';
 import { questionOrder, type ImportRecords } from './import/plan';
 import { emptyCollections, mergeCollections } from './merge';
 import { COLLECTION_NAMES } from './types';
-import type { BaseRecord, CollectionName, Collections, Exam, Ink, Link, Marks, Note, Progress, Question, QuestionSet, Session, Settings } from './types';
+import type { Attachment, BaseRecord, CollectionName, Collections, Exam, Ink, Link, Marks, Note, Progress, Question, QuestionSet, Session, Settings } from './types';
 import { collator, nowIso } from './util';
 
 type Listener = () => void;
@@ -50,6 +50,8 @@ class Store {
   /** Each exam's links, in the order they were added. */
   linksByExam = $derived(groupBy(live(this.data.links).sort((a, b) => a.order - b.order || a.createdAt.localeCompare(b.createdAt)), (l) => l.examId));
   linksById = $derived(byId(this.data.links));
+  /** Each question's attached files, in the order they were added. */
+  filesByQuestion = $derived(groupBy(live(this.data.files).sort((a, b) => a.order - b.order || a.createdAt.localeCompare(b.createdAt)), (f) => f.questionId));
   settings = $derived<Settings>(this.data.settings.find((s) => s.id === 'settings' && !s.deleted) ?? DEFAULT_SETTINGS);
 
   #listeners = new Set<Listener>();
@@ -172,6 +174,10 @@ class Store {
     return this.linksByExam.get(examId) ?? [];
   }
 
+  attachmentsFor(q: Question): Attachment[] {
+    return this.filesByQuestion.get(q.id) ?? [];
+  }
+
   /** A question's own links (not the exam's). */
   linksFor(q: Question): Link[] {
     return this.linksOf(q.examId).filter((l) => l.questionId === q.id);
@@ -197,6 +203,7 @@ class Store {
     await this.remove('ink', mine(this.data.ink));
     await this.remove('progress', mine(this.data.progress));
     await this.remove('links', mine(this.data.links));
+    await this.deleteAttachments(mine(this.data.files));
     const session = this.sessions.get(e.id);
     if (session) await this.remove('sessions', [session]);
     await this.remove('exams', [e]);
@@ -210,6 +217,7 @@ class Store {
     const qs = this.data.questions.filter((q) => q.setId === s.id && !q.deleted);
     const ids = new Set(qs.map((q) => q.id));
     await this.remove('links', this.data.links.filter((l) => l.questionId && ids.has(l.questionId) && !l.deleted));
+    await this.deleteAttachments(this.data.files.filter((f) => ids.has(f.questionId) && !f.deleted));
     await this.remove('questions', qs);
     await this.remove('sets', [s]);
   }
@@ -220,6 +228,7 @@ class Store {
 
   async deleteQuestion(q: Question): Promise<void> {
     await this.remove('links', this.data.links.filter((l) => l.questionId === q.id && !l.deleted));
+    await this.deleteAttachments(this.data.files.filter((f) => f.questionId === q.id && !f.deleted));
     await this.remove('questions', [q]);
   }
 
@@ -246,6 +255,17 @@ class Store {
     const id = `${q.id}.${area}`;
     const existing = this.ink.get(id);
     await this.put('ink', [existing ? { ...existing, ...patch } : { id, examId: q.examId, questionId: q.id, area, createdAt: '', updatedAt: '', ...patch }]);
+  }
+
+  async saveAttachments(list: Attachment[]): Promise<void> {
+    await this.put('files', list);
+  }
+
+  /** Deletes files: the records sync as deletions (the next sync removes them from the repo). */
+  async deleteAttachments(list: Attachment[]): Promise<void> {
+    if (!list.length) return;
+    await this.remove('files', list);
+    for (const a of list) await db.deleteBlob(a.id);
   }
 
   async saveLink(l: Link): Promise<void> {

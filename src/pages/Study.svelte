@@ -5,6 +5,7 @@
   import Linkified from '../components/Linkified.svelte';
   import MarkedText from '../components/MarkedText.svelte';
   import MemoPad from '../components/MemoPad.svelte';
+  import QuestionFiles from '../components/QuestionFiles.svelte';
   import QuestionPage from '../components/QuestionPage.svelte';
   import ReadingSettings from '../components/ReadingSettings.svelte';
   import LinkRow from '../components/LinkRow.svelte';
@@ -109,7 +110,8 @@
       return;
     }
     const t = e.target as HTMLElement;
-    if (t.closest('input, textarea, select, [contenteditable]') || e.metaKey || e.ctrlKey || e.altKey) return;
+    // A file open full screen (a dialog) has its own keys.
+    if (t.closest('input, textarea, select, [contenteditable], dialog') || e.metaKey || e.ctrlKey || e.altKey) return;
     if (/^[1-9]$/.test(e.key) && question && Number(e.key) <= question.options.length) choose(Number(e.key) - 1);
     else if (e.key === 'Enter' && !checked && !t.closest('button, a, [role=radio], [role=checkbox]')) void check();
     else if (e.key === 'ArrowRight') void go(1);
@@ -120,6 +122,9 @@
   const examLinkCount = $derived(store.linksOf(examId).filter((l) => !l.questionId).length);
   // Links may give the answer away: in Clean mode they appear once the answer is checked.
   const showLinks = $derived(!!question && (ui.notes || (checked && (qLinks.length > 0 || examLinkCount > 0))));
+  // Files too (a screenshot may show the answer).
+  const qFiles = $derived(question ? store.attachmentsFor(question) : []);
+  const showFiles = $derived(!!question && (ui.notes || (checked && qFiles.length > 0)));
 
   const atEnd = $derived(index >= total - 1);
   const correctLabel = $derived(question ? question.correct.map((i) => i + 1).join(' and ') : '');
@@ -236,6 +241,10 @@
             <Icon name="next" size={18} />
           </a>
         </section>
+      {/if}
+
+      {#if showFiles && question}
+        <QuestionFiles {question} />
       {/if}
 
       {#if ui.notes}
