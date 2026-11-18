@@ -14,6 +14,8 @@ interface Step {
 class Ui {
   mode = $state<ViewMode>(loadPref('mode', 'clean'));
   pencilOnly = $state<boolean>(loadPref('pencilOnly', true));
+  /** Show your earlier answers to each question (the switch on the study screen). */
+  showHistory = $state<boolean>(loadPref('showHistory', false));
   /** Reading text size, a multiple of normal. Set on each device: screens differ. */
   textScale = $state<number>(loadPref('textScale', 1));
   writing = $state(false);
@@ -44,6 +46,11 @@ class Ui {
   setPencilOnly(on: boolean) {
     this.pencilOnly = on;
     savePref('pencilOnly', on);
+  }
+
+  setShowHistory(on: boolean) {
+    this.showHistory = on;
+    savePref('showHistory', on);
   }
 
   /** Writing only happens in Notes mode, so starting to write switches to it. */

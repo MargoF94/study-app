@@ -122,6 +122,13 @@ export interface Link extends BaseRecord {
 }
 
 /** What happened when you answered a question. id = question id. */
+/** One answer you gave: when, which options (0-based) and whether it was right. */
+export interface Answer {
+  at: string;
+  chosen: number[];
+  right: boolean;
+}
+
 export interface Progress extends BaseRecord {
   examId: string;
   attempts: number;
@@ -129,6 +136,8 @@ export interface Progress extends BaseRecord {
   last?: 'right' | 'wrong';
   lastAt?: string;
   flagged?: boolean;
+  /** Your answers, oldest first (the latest 100). Answers from before these were kept only count in attempts and right. */
+  history?: Answer[];
 }
 
 /** The study session in progress for an exam, so any device can continue it. id = exam id. */
@@ -136,6 +145,10 @@ export interface Session extends BaseRecord {
   ids: string[];
   index: number;
   label: string;
+  /** Studying a selection in order: which one (see selectionKey), so studying it again carries on. */
+  key?: string;
+  /** For each selection studied in order: the question you were on ("" = start from the beginning). Kept across sessions. */
+  resume?: Record<string, string>;
 }
 
 export type Theme = ThemeKey;

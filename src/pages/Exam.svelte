@@ -6,9 +6,9 @@
   import { questionsCsv } from '../lib/export';
   import { router } from '../lib/router.svelte';
   import { store } from '../lib/store.svelte';
-  import { describeChoice, examStats, matchesWhich, pickQuestions, type Order, type StudyChoice, type Which } from '../lib/study';
+  import { describeChoice, examStats, lastPlace, matchesWhich, pickQuestions, resumeIndex, selectionKey, type Order, type StudyChoice, type Which } from '../lib/study';
   import { toasts } from '../lib/toast.svelte';
-  import { downloadText, loadPref, nowIso, plural, savePref, today } from '../lib/util';
+  import { downloadText, loadPref, plural, savePref, today } from '../lib/util';
 
   let { examId }: { examId: string } = $props();
 
@@ -45,6 +45,20 @@
   const count = $derived(inScope.filter((q) => matchesWhich(store.progress.get(q.id), which)).length);
   const whichCount = (w: Which) => inScope.filter((q) => matchesWhich(store.progress.get(q.id), w)).length;
 
+  // In order, studying carries on from the question you were on in this selection.
+  const key = $derived(
+    selectionKey(
+      choice,
+      sets.map((s) => s.id),
+      topics,
+    ),
+  );
+  const resumeAt = $derived.by(() => {
+    if (order !== 'order') return 0;
+    const list = pickQuestions(questions, store.progress, choice);
+    return resumeIndex(list, lastPlace(list, key, which, session, store.progress), questions);
+  });
+
   function perTopic(t: string) {
     const qs = questions.filter((q) => q.topic === t);
     const answered = qs.filter((q) => (store.progress.get(q.id)?.attempts ?? 0) > 0).length;
@@ -59,7 +73,8 @@
 
   const toggle = (list: string[], x: string) => (list.includes(x) ? list.filter((y) => y !== x) : [...list, x]);
 
-  async function start() {
+  /** `carryOn`: in order, at the question you were on (else from the first). */
+  async function start(carryOn: boolean) {
     const picked = pickQuestions(questions, store.progress, choice);
     if (!picked.length) return;
     const label = describeChoice(
@@ -68,8 +83,9 @@
       choice.setIds.length === sets.length,
       choice.topics.length === topics.length,
     );
-    const now = nowIso();
-    await store.saveSession({ id: examId, createdAt: session?.createdAt ?? now, updatedAt: now, ids: picked.map((q) => q.id), index: 0, label });
+    const inOrder = order === 'order';
+    const index = inOrder && carryOn ? resumeIndex(picked, lastPlace(picked, key, which, session, store.progress), questions) : 0;
+    await store.startSession(examId, { ids: picked.map((q) => q.id), index, label, key: inOrder ? key : undefined });
     router.go(`/exam/${examId}/study`);
   }
 
@@ -177,9 +193,16 @@
           </div>
         </div>
 
-        <button type="button" class="btn primary go" disabled={count === 0} onclick={start}>
-          {count ? `Study ${plural(count, 'question')}` : 'No questions match'}
-        </button>
+        {#if resumeAt > 0}
+          <div class="carry">
+            <button type="button" class="btn primary go" onclick={() => start(true)}>Continue at question {resumeAt + 1} of {count}</button>
+            <button type="button" class="btn go" onclick={() => start(false)}>Start from question 1</button>
+          </div>
+        {:else}
+          <button type="button" class="btn primary go" disabled={count === 0} onclick={() => start(false)}>
+            {count ? `Study ${plural(count, 'question')}` : 'No questions match'}
+          </button>
+        {/if}
         <button type="button" class="btn soon" disabled>Exam mode (timed, scored): coming later</button>
       </section>
     {/if}
@@ -384,6 +407,19 @@
     min-height: 52px;
     font-size: 1.05rem;
     font-weight: 650;
+  }
+
+  /* Carry on (the main button) or start over. */
+  .carry {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    gap: 8px;
+  }
+
+  @media (max-width: 520px) {
+    .carry {
+      grid-template-columns: 1fr;
+    }
   }
 
   .soon {

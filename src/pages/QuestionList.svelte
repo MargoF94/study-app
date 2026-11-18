@@ -5,7 +5,7 @@
   import { store } from '../lib/store.svelte';
   import { matchesWhich, type Which } from '../lib/study';
   import type { Question } from '../lib/types';
-  import { nowIso, normalize, plural } from '../lib/util';
+  import { normalize, plural } from '../lib/util';
 
   let { examId }: { examId: string } = $props();
 
@@ -39,9 +39,7 @@
 
   async function open(q: Question) {
     const ids = list.map((x) => x.id);
-    const now = nowIso();
-    const old = store.sessions.get(examId);
-    await store.saveSession({ id: examId, createdAt: old?.createdAt ?? now, updatedAt: now, ids, index: ids.indexOf(q.id), label: search ? `Search: ${search}` : 'Browsing' });
+    await store.startSession(examId, { ids, index: ids.indexOf(q.id), label: search ? `Search: ${search}` : 'Browsing' });
     router.go(`/exam/${examId}/study`);
   }
 

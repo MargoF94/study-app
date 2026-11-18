@@ -8,7 +8,8 @@ import { addPoint, newStroke, strokePath, touches } from '../src/lib/ink';
 import { addMark, overlapsMark, remapOptionMarks, removeMark, segments } from '../src/lib/marks';
 import { emptyCollections, isDataPath, parseFile, toFiles } from '../src/lib/merge';
 import { commitMessage } from '../src/lib/sync.svelte';
-import { examStats, isRight, pickQuestions, recordAnswer } from '../src/lib/study';
+import { HISTORY_LIMIT, answerHistory, examStats, isRight, lastPlace, pickQuestions, recordAnswer, resumeIndex, selectionKey } from '../src/lib/study';
+import type { Session } from '../src/lib/types';
 import type { Question, QuestionSet } from '../src/lib/types';
 
 const T = '2026-10-01T00:00:00.000Z';
@@ -170,11 +171,65 @@ describe('studying', () => {
   test('answers and stats', () => {
     expect(isRight([2, 0], [0, 2])).toBe(true);
     expect(isRight([0], [0, 2])).toBe(false);
-    const p = recordAnswer(undefined, { id: 'c', examId: 'e1' }, true, T);
+    const p = recordAnswer(undefined, { id: 'c', examId: 'e1' }, [1], true, T);
     expect([p.attempts, p.right, p.last]).toEqual([1, 1, 'right']);
-    const p2 = recordAnswer(p, { id: 'c', examId: 'e1' }, false, T);
+    const p2 = recordAnswer(p, { id: 'c', examId: 'e1' }, [3, 0], false, '2026-11-18T10:00:00.000Z');
     expect([p2.attempts, p2.right, p2.last]).toEqual([2, 1, 'wrong']);
+    expect(p2.history).toEqual([
+      { at: T, chosen: [1], right: true },
+      { at: '2026-11-18T10:00:00.000Z', chosen: [0, 3], right: false },
+    ]);
     expect(examStats(qs, progress)).toEqual({ total: 3, answered: 2, right: 1, wrong: 1, flagged: 1 });
+  });
+
+  test('answer history: newest first, older answers that weren\'t kept are counted', () => {
+    expect(answerHistory(undefined)).toEqual({ answers: [], other: 0, otherRight: 0 });
+    // Answered before each answer was kept: only the last one is known
+    const old = progress.get('a')!; // 2 answers, 1 right, last wrong
+    expect(answerHistory({ ...old, lastAt: T })).toEqual({ answers: [{ at: T, chosen: [], right: false }], other: 1, otherRight: 1 });
+    // Then answered again: kept from now on
+    const now = recordAnswer({ ...old, lastAt: T }, old, [2], true, '2026-11-18T09:00:00.000Z');
+    expect(answerHistory(now)).toEqual({ answers: [{ at: '2026-11-18T09:00:00.000Z', chosen: [2], right: true }], other: 2, otherRight: 1 });
+    // Only the latest are kept
+    let many = recordAnswer(undefined, old, [0], true, T);
+    for (let i = 0; i < HISTORY_LIMIT + 5; i++) many = recordAnswer(many, old, [i % 4], false, T);
+    expect(many.history!.length).toBe(HISTORY_LIMIT);
+    expect(many.attempts).toBe(HISTORY_LIMIT + 6);
+    expect(answerHistory(many).other).toBe(6);
+  });
+
+  test('carrying on in order where you left off', () => {
+    const all = [q('a', 's1', '1', 'One'), q('b', 's1', '2', 'Two'), q('c', 's1', '3', 'Three'), q('d', 's2', '1', 'Four')];
+    const choice = { setIds: ['s1', 's2'], topics: [''], which: 'all' as const, order: 'order' as const };
+    const key = selectionKey(choice, ['s1', 's2'], ['']);
+    // A newly imported set starts ticked: same selection
+    expect(selectionKey({ ...choice, setIds: ['s1', 's2', 's3'] }, ['s1', 's2', 's3'], [''])).toBe(key);
+    // Leaving a set out is another selection, whichever order things were ticked in
+    expect(selectionKey({ ...choice, setIds: ['s2'] }, ['s1', 's2'], [''])).not.toBe(key);
+    expect(selectionKey({ ...choice, which: 'wrong' }, ['s1', 's2'], [''])).not.toBe(key);
+
+    // Where you were: that question; gone from the list: the next one after it; deleted: the beginning
+    expect(resumeIndex(all, 'c', all)).toBe(2);
+    expect(resumeIndex([all[0], all[3]], 'b', all)).toBe(1);
+    expect(resumeIndex([all[0], all[1]], 'c', all)).toBe(0);
+    expect(resumeIndex(all, 'zzz', all)).toBe(0);
+    expect(resumeIndex(all, undefined, all)).toBe(0);
+
+    const S = (extra: Partial<Session>): Session => ({ id: 'e1', createdAt: T, updatedAt: T, ids: [], index: 0, label: '', ...extra });
+    const none = new Map();
+    // Kept for this selection ("" = finished: start from the beginning)
+    expect(lastPlace(all, key, 'all', S({ resume: { [key]: 'c' } }), none)).toBe('c');
+    expect(lastPlace(all, key, 'all', S({ resume: { [key]: '' } }), none)).toBeUndefined();
+    // First time: the session in progress, when it's this same list
+    expect(lastPlace(all, key, 'all', S({ ids: ['a', 'b', 'c', 'd'], index: 1 }), none)).toBe('b');
+    expect(lastPlace(all, key, 'all', S({ ids: ['d', 'c', 'b', 'a'], index: 1 }), none)).toBeUndefined();
+    // …or, for all questions, the one answered last
+    const answered = new Map([
+      ['a', { id: 'a', examId: 'e1', createdAt: T, updatedAt: T, attempts: 1, right: 1, lastAt: '2026-11-17T08:00:00.000Z' }],
+      ['c', { id: 'c', examId: 'e1', createdAt: T, updatedAt: T, attempts: 1, right: 0, lastAt: '2026-11-17T09:00:00.000Z' }],
+    ]);
+    expect(lastPlace(all, key, 'all', undefined, answered)).toBe('c');
+    expect(lastPlace(all, key, 'wrong', undefined, answered)).toBeUndefined();
   });
 });
 

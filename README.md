@@ -16,6 +16,13 @@ Reading Log and Money Log. Your data stays on your devices and syncs to a privat
   and reference. Export back to CSV in the same layout.
 - **Study mode**: choose sets, topics, which questions (all, new, wrong, flagged) and the order.
   Check your answer, see the explanation, flag questions, continue later on any device.
+  In order, studying carries on from the question you were on in that selection (**Continue at
+  question 58 of 300**), or choose **Start from question 1**; after **Finish** at the end it starts
+  from the beginning again. Shuffled sessions always start fresh.
+- **Your answers**: under each question, how many times you answered it and how often you were
+  right. Turn on its switch to list each answer: when, right or wrong, and (once you've checked your
+  answer, so it can't give the answer away) which options you chose. The switch is remembered on
+  each device.
   Exam mode (timed, scored) comes later.
 - **Notes**: a typed note per question, text highlights (select words in the question, an option or
   the explanation), and handwriting: over the question itself and on a memo pad below it.
@@ -76,10 +83,10 @@ Two repositories:
 
 ```
 study-data/
-  study.json                         exams, question sets, study sessions, settings
+  study.json                         exams, question sets, study sessions (and where you were in each), settings
   exams/<exam>/questions.json        questions
   exams/<exam>/notes.json            typed notes and highlights
-  exams/<exam>/progress.json         answers and flags
+  exams/<exam>/progress.json         answers (each one kept, the latest 100 per question) and flags
   exams/<exam>/links.json            links on questions and on the exam
   exams/<exam>/files.json            the list of attached files (name, type, size, question)
   exams/<exam>/files/<id>.<ext>      the attached files themselves

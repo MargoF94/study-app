@@ -1,4 +1,5 @@
 <script lang="ts">
+  import AnswerHistory from '../components/AnswerHistory.svelte';
   import HighlightMenu from '../components/HighlightMenu.svelte';
   import Icon from '../components/Icon.svelte';
   import InkToolbar from '../components/InkToolbar.svelte';
@@ -76,7 +77,7 @@
     if (!question || chosen.length === 0 || checked) return;
     checked = true;
     wasRight = isRight(chosen, question.correct);
-    await store.saveProgress(recordAnswer(progress, { id: question.id, examId: question.examId }, wasRight, nowIso()));
+    await store.saveProgress(recordAnswer(progress, { id: question.id, examId: question.examId }, chosen, wasRight, nowIso()));
   }
 
   async function go(delta: number) {
@@ -84,8 +85,15 @@
     const next = index + delta;
     if (next < 0 || next >= total) return;
     saveNoteNow();
-    await store.saveSession({ ...session, index: next });
+    await store.moveSession(session, next);
     window.scrollTo(0, 0);
+  }
+
+  /** The end of the list: studying the same selection in order again starts from the beginning. */
+  async function finish() {
+    saveNoteNow();
+    if (session) await store.finishSession(session);
+    router.go(`/exam/${examId}`);
   }
 
   function saveNoteNow(q: Question | undefined = question) {
@@ -225,6 +233,8 @@
         {/if}
       {/if}
 
+      <AnswerHistory {progress} {checked} />
+
       {#if showLinks && question}
         <section class="card qlinks">
           <div class="lhead">
@@ -280,7 +290,7 @@
       {#if question && !checked}
         <button type="button" class="btn primary big" disabled={chosen.length === 0} onclick={check}>Check answer</button>
       {:else if atEnd}
-        <a class="btn primary big" href="#/exam/{examId}">Finish</a>
+        <button type="button" class="btn primary big" onclick={finish}>Finish</button>
       {:else}
         <button type="button" class="btn primary big" onclick={() => go(1)}>Next question <Icon name="next" /></button>
       {/if}

@@ -285,8 +285,30 @@ class Store {
     await this.put('progress', [p ? { ...p, flagged: !p.flagged } : { id: q.id, examId: q.examId, createdAt: '', updatedAt: '', attempts: 0, right: 0, flagged: true }]);
   }
 
-  async saveSession(s: Session): Promise<void> {
-    await this.put('sessions', [s]);
+  /**
+   * Starts studying a list of questions. `key` names a selection studied in order: the question
+   * you are on is kept for it, so studying it again carries on there. Kept places of other
+   * selections are carried over.
+   */
+  async startSession(examId: string, s: { ids: string[]; index: number; label: string; key?: string }): Promise<void> {
+    const old = this.sessions.get(examId);
+    const now = nowIso();
+    const resume = { ...old?.resume };
+    if (s.key) resume[s.key] = s.ids[s.index] ?? '';
+    const session: Session = { id: examId, createdAt: old?.createdAt ?? now, updatedAt: now, ids: s.ids, index: s.index, label: s.label };
+    if (s.key) session.key = s.key;
+    if (Object.keys(resume).length) session.resume = resume;
+    await this.put('sessions', [session]);
+  }
+
+  /** Moves to another question of the session (for a selection in order, also where to carry on). */
+  async moveSession(s: Session, index: number): Promise<void> {
+    await this.put('sessions', [{ ...s, index, ...(s.key ? { resume: { ...s.resume, [s.key]: s.ids[index] } } : {}) }]);
+  }
+
+  /** Finished a selection in order: next time it starts from the beginning. */
+  async finishSession(s: Session): Promise<void> {
+    if (s.key) await this.put('sessions', [{ ...s, resume: { ...s.resume, [s.key]: '' } }]);
   }
 
   async saveSettings(patch: Partial<Settings>): Promise<void> {
