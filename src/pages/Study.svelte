@@ -12,6 +12,7 @@
   import LinkRow from '../components/LinkRow.svelte';
   import TopBar from '../components/TopBar.svelte';
   import { ORIGINAL_STYLE, fontOption, sameStyle, styleForInk, type TextStyle } from '../lib/appearance';
+  import { autosize } from '../lib/autosize';
   import { layoutFor } from '../lib/layout';
   import { router } from '../lib/router.svelte';
   import { store } from '../lib/store.svelte';
@@ -265,6 +266,7 @@
             <textarea
               rows="3"
               bind:value={noteText}
+              use:autosize={[question.id, ui.textScale, store.settings.font]}
               oninput={() => saveNoteSoon(question, noteText)}
               onblur={() => saveNoteNow()}
               placeholder="Type a note for this question"
