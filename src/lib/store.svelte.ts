@@ -4,7 +4,7 @@ import * as db from './db';
 import { questionOrder, type ImportRecords } from './import/plan';
 import { emptyCollections, mergeCollections } from './merge';
 import { COLLECTION_NAMES } from './types';
-import type { Attachment, BaseRecord, CollectionName, Collections, Exam, Ink, Link, Marks, Note, Progress, Question, QuestionSet, Session, Settings } from './types';
+import type { Attachment, BaseRecord, CollectionName, Collections, Exam, Ink, Link, LinkGroup, Marks, Note, Progress, Question, QuestionSet, Session, Settings } from './types';
 import { collator, nowIso } from './util';
 
 type Listener = () => void;
@@ -50,6 +50,8 @@ class Store {
   /** Each exam's links, in the order they were added. */
   linksByExam = $derived(groupBy(live(this.data.links).sort((a, b) => a.order - b.order || a.createdAt.localeCompare(b.createdAt)), (l) => l.examId));
   linksById = $derived(byId(this.data.links));
+  /** Each exam's groups of links, in their order. */
+  linkGroupsByExam = $derived(groupBy(live(this.data.linkGroups).sort((a, b) => a.order - b.order || a.createdAt.localeCompare(b.createdAt)), (g) => g.examId));
   /** Each question's attached files, in the order they were added. */
   filesByQuestion = $derived(groupBy(live(this.data.files).sort((a, b) => a.order - b.order || a.createdAt.localeCompare(b.createdAt)), (f) => f.questionId));
   settings = $derived<Settings>(this.data.settings.find((s) => s.id === 'settings' && !s.deleted) ?? DEFAULT_SETTINGS);
@@ -174,6 +176,10 @@ class Store {
     return this.linksByExam.get(examId) ?? [];
   }
 
+  linkGroupsOf(examId: string): LinkGroup[] {
+    return this.linkGroupsByExam.get(examId) ?? [];
+  }
+
   attachmentsFor(q: Question): Attachment[] {
     return this.filesByQuestion.get(q.id) ?? [];
   }
@@ -203,6 +209,7 @@ class Store {
     await this.remove('ink', mine(this.data.ink));
     await this.remove('progress', mine(this.data.progress));
     await this.remove('links', mine(this.data.links));
+    await this.remove('linkGroups', mine(this.data.linkGroups));
     await this.deleteAttachments(mine(this.data.files));
     const session = this.sessions.get(e.id);
     if (session) await this.remove('sessions', [session]);
@@ -274,6 +281,17 @@ class Store {
 
   async deleteLink(l: Link): Promise<void> {
     await this.remove('links', [l]);
+  }
+
+  async saveLinkGroups(list: LinkGroup[]): Promise<void> {
+    await this.put('linkGroups', list);
+  }
+
+  /** Deletes a group of links. Its links stay, outside any group. */
+  async deleteLinkGroup(g: LinkGroup): Promise<void> {
+    const members = this.data.links.filter((l) => l.groupId === g.id && !l.deleted);
+    if (members.length) await this.put('links', members.map(({ groupId: _left, ...l }) => l));
+    await this.remove('linkGroups', [g]);
   }
 
   async saveProgress(p: Progress): Promise<void> {

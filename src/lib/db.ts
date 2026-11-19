@@ -15,12 +15,14 @@ class StudyDb extends Dexie {
     super('study-log');
     const schema: Record<string, string> = { meta: 'key' };
     for (const name of COLLECTION_NAMES) schema[name] = 'id';
-    const { links: _links, files: _files, ...v1 } = schema;
+    const { links: _links, files: _files, linkGroups: _groups, ...v1 } = schema;
     this.version(1).stores(v1);
-    const { files: _files2, ...v2 } = schema;
+    const { files: _files2, linkGroups: _groups2, ...v2 } = schema;
     this.version(2).stores(v2); // + links
     // + attached files: their records sync like the rest; their bytes are kept in `blobs`.
-    this.version(3).stores({ ...schema, blobs: 'id' });
+    const { linkGroups: _groups3, ...v3 } = schema;
+    this.version(3).stores({ ...v3, blobs: 'id' });
+    this.version(4).stores({ ...schema, blobs: 'id' }); // + link groups
   }
 
   coll(name: CollectionName): Table<BaseRecord, string> {

@@ -2,20 +2,25 @@
   import { untrack } from 'svelte';
   import Icon from '../components/Icon.svelte';
   import TopBar from '../components/TopBar.svelte';
-  import { cleanUrl, isWebUrl, linkInfo } from '../lib/links';
+  import { GROUP_NAME_MAX, cleanUrl, isWebUrl, linkInfo } from '../lib/links';
   import { router } from '../lib/router.svelte';
   import { store } from '../lib/store.svelte';
   import { toasts } from '../lib/toast.svelte';
   import type { Link } from '../lib/types';
   import { newId, nowIso } from '../lib/util';
 
-  // Edit a link (id), or add one to an exam (?exam=) and optionally a question (&q=).
+  // Edit a link (id), or add one to an exam (?exam=) and optionally a question (&q=) or a group (&group=).
   let { id }: { id?: string } = $props();
 
-  const { original, examId, presetQuestion } = untrack(() => {
+  const { original, examId, presetQuestion, presetGroup } = untrack(() => {
     const original = id ? store.linksById.get(id) : undefined;
     const q = router.route.query;
-    return { original, examId: original?.examId ?? q.get('exam') ?? '', presetQuestion: original ? original.questionId : (q.get('q') ?? undefined) };
+    return {
+      original,
+      examId: original?.examId ?? q.get('exam') ?? '',
+      presetQuestion: original ? original.questionId : (q.get('q') ?? undefined),
+      presetGroup: original ? original.groupId : (q.get('group') ?? undefined),
+    };
   });
   const exam = store.exam(examId);
   const question = presetQuestion ? store.question(presetQuestion) : undefined;
@@ -24,6 +29,12 @@
   let title = $state(original?.title ?? '');
   let scope = $state<'question' | 'exam'>(question ? 'question' : 'exam');
   let error = $state('');
+
+  // The group, for links for the whole exam.
+  const NEW_GROUP = '+new';
+  const groups = $derived(store.linkGroupsOf(examId));
+  let group = $state(untrack(() => (presetGroup && store.linkGroupsOf(examId).some((g) => g.id === presetGroup) ? presetGroup : '')));
+  let newGroupName = $state('');
 
   const cleaned = $derived(cleanUrl(url));
   const info = $derived(cleaned ? linkInfo(cleaned) : null);
@@ -54,12 +65,21 @@
     error = '';
     if (!valid) return void (error = 'Enter a web address, starting with https:// (or just docs.google.com/…).');
     const now = nowIso();
+    let groupId: string | undefined;
+    if (scope === 'exam' && group === NEW_GROUP) {
+      const name = newGroupName.trim().slice(0, GROUP_NAME_MAX);
+      if (!name) return void (error = 'Name the new group, or choose another one.');
+      groupId = newId();
+      const order = groups.length ? Math.max(...groups.map((g) => g.order)) + 1 : 0;
+      await store.saveLinkGroups([{ id: groupId, createdAt: now, updatedAt: now, examId, name, order }]);
+    } else if (scope === 'exam' && groups.some((g) => g.id === group)) groupId = group;
     const siblings = store.linksOf(examId);
     const link: Link = {
       ...(original ?? { id: newId(), createdAt: now, updatedAt: now, examId, order: siblings.length ? Math.max(...siblings.map((l) => l.order)) + 1 : 0 }),
       url: cleaned,
       title: title.trim(),
       questionId: scope === 'question' && question ? question.id : undefined,
+      groupId,
     };
     await store.saveLink(link);
     toasts.show(original ? 'Link saved.' : 'Link added.');
@@ -123,6 +143,25 @@
         <span class="small muted">The whole exam: shown on the exam page, and under every question's links.</span>
       {/if}
     </div>
+
+    {#if scope === 'exam'}
+      <label class="field">
+        <span>Group</span>
+        <select bind:value={group}>
+          <option value="">No group</option>
+          {#each groups as g (g.id)}
+            <option value={g.id}>{g.name}</option>
+          {/each}
+          <option value={NEW_GROUP}>New group…</option>
+        </select>
+      </label>
+      {#if group === NEW_GROUP}
+        <label class="field">
+          <span>Name of the new group</span>
+          <input bind:value={newGroupName} maxlength={GROUP_NAME_MAX} placeholder="e.g. Official docs" />
+        </label>
+      {/if}
+    {/if}
 
     <p class="small muted m0">Links open in a new tab. Google Docs and Sheets that aren't shared publicly open for whoever is signed in to Google with access.</p>
 

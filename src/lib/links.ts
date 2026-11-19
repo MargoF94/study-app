@@ -1,4 +1,5 @@
-// What kind of thing a link points to, worked out from its address.
+// What kind of thing a link points to, worked out from its address; and the exam's groups of links.
+import type { Link, LinkGroup } from './types';
 
 export type LinkKind = 'web' | 'sheet' | 'doc' | 'slides' | 'pdf' | 'drive' | 'video';
 
@@ -65,3 +66,19 @@ export function linkInfo(url: string): LinkInfo {
 export function linkTitle(l: { title: string; url: string }): string {
   return l.title.trim() || l.url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
 }
+
+/**
+ * The exam's own links (not those on questions), by group, in the groups' order; and the
+ * links in no group. A link whose group was deleted (on another device, say) is in no group.
+ */
+export function groupLinks(links: Link[], groups: LinkGroup[]): { grouped: { group: LinkGroup; links: Link[] }[]; ungrouped: Link[] } {
+  const own = links.filter((l) => !l.questionId);
+  const ids = new Set(groups.map((g) => g.id));
+  return {
+    grouped: groups.map((group) => ({ group, links: own.filter((l) => l.groupId === group.id) })),
+    ungrouped: own.filter((l) => !l.groupId || !ids.has(l.groupId)),
+  };
+}
+
+/** Group names are kept short enough to fit a heading. */
+export const GROUP_NAME_MAX = 80;

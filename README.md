@@ -29,6 +29,9 @@ Reading Log and Money Log. Your data stays on your devices and syncs to a privat
 - **Links**: add web pages, Google Docs/Sheets/Slides, PDFs or videos to a question or to the whole
   exam, each with a title. The kind is recognised from the address. The exam page lists them all.
   In Clean mode a question's links appear only after you check your answer.
+  Sort the exam's own links into groups (**New group** on the Links card, or a group chosen when
+  adding or editing a link). Tap a group's name to rename it; while renaming, it can be moved up or
+  down, or deleted (its links stay, outside any group). **+** on a group adds a link straight into it.
 - **Files**: attach screenshots, photos, PDFs or any other file (up to 20 MB each) to a question:
   **Add** (on iPad: Photos, the camera or Files), **Paste** a copied screenshot (on iPad: take a
   screenshot, then Done → Copy and Delete), or drop files on the page. Pictures show as thumbnails;
@@ -88,6 +91,7 @@ study-data/
   exams/<exam>/notes.json            typed notes and highlights
   exams/<exam>/progress.json         answers (each one kept, the latest 100 per question) and flags
   exams/<exam>/links.json            links on questions and on the exam
+  exams/<exam>/link-groups.json      the exam's groups of links (names and order)
   exams/<exam>/files.json            the list of attached files (name, type, size, question)
   exams/<exam>/files/<id>.<ext>      the attached files themselves
   exams/<exam>/ink/<question>.json   handwriting for one question

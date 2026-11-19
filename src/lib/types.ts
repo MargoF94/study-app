@@ -119,9 +119,17 @@ export interface Link extends BaseRecord {
   url: string;
   title: string;
   order: number;
+  /** The group it's in (links for the whole exam only). */
+  groupId?: string;
 }
 
-/** What happened when you answered a question. id = question id. */
+/** A named group of an exam's links, e.g. "Official docs". Links join it with groupId. */
+export interface LinkGroup extends BaseRecord {
+  examId: string;
+  name: string;
+  order: number;
+}
+
 /** One answer you gave: when, which options (0-based) and whether it was right. */
 export interface Answer {
   at: string;
@@ -129,6 +137,7 @@ export interface Answer {
   right: boolean;
 }
 
+/** What happened when you answered a question. id = question id. */
 export interface Progress extends BaseRecord {
   examId: string;
   attempts: number;
@@ -171,11 +180,12 @@ export interface Collections {
   settings: Settings[];
   links: Link[];
   files: Attachment[];
+  linkGroups: LinkGroup[];
 }
 
 export type CollectionName = keyof Collections;
 
-export const COLLECTION_NAMES: CollectionName[] = ['exams', 'sets', 'questions', 'notes', 'marks', 'ink', 'progress', 'sessions', 'settings', 'links', 'files'];
+export const COLLECTION_NAMES: CollectionName[] = ['exams', 'sets', 'questions', 'notes', 'marks', 'ink', 'progress', 'sessions', 'settings', 'links', 'files', 'linkGroups'];
 
 /** Width of a question page in page units on phones (and before wide pages). Handwriting is stored in these units. */
 export const PAGE_WIDTH = 440;
